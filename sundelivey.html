@@ -1276,13 +1276,14 @@
             const dir = document.getElementById('cli-direccion').value.trim();
 
             if (editClienteDirId !== null) {
-                db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telephone: tlf, direccion: dir })
+                // CORREGIDO: Se cambia 'telephone' por 'telefono' para mantener consistencia y evitar fallos de persistencia
+                db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
                 .then(() => {
                     editClienteDirId = null;
                     document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes`;
                     document.getElementById('btn-submit-cliente-dir').innerHTML = `<i class="fa-solid fa-user-plus"></i> Guardar en Cartera`;
                     document.getElementById('form-directorio-cliente').reset();
-                    Swal.fire("Actualizado", "Datos del cliente modificados in la nube.", "success");
+                    Swal.fire("Actualizado", "Datos del cliente modificados en la nube.", "success");
                 });
             } else {
                 db.collection('clientes').add({ nombre: nom, telefono: tlf, direccion: dir, creado: Date.now() })
