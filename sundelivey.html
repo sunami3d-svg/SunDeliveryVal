@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUNDELIVERY Valencia (Cloud Premium)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        /* ESTILOS PREMIUM REFACTORIZADOS - UI/UX MODERNIZADA */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+        h1, h2, h3, h4, .login-title, .panel-title, .header-brand {
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background-color: #f8fafc; /* Gris azulado premium muy suave */
+            color: #1e293b;
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+
+        /* CONTENEDOR DE ALERTAS EN TIEMPO REAL */
+        #contenedor-alertas-flotantes {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .alerta-notificacion-rt {
+            background-color: #ffffff;
+            border-left: 6px solid #ff6600;
+            color: #1e293b;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+            pointer-events: auto;
+            animation: slideInRt 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideInRt {
+            from { transform: translateX(110%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* LOGIN REDISEÑADO ELEGANTE */
+        #login-view {
+            background: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 9999;
+        }
+        #login-view.hidden { display: none; }
+        .login-card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            border-top: 8px solid #ff6600;
+            text-align: center;
+        }
+        .brand-logo-login {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .login-title {
+            color: #ff6600;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .login-subtitle {
+            color: #475569;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+        .info-box {
+            background-color: #f1f5f9;
+            border-left: 4px solid #ff6600;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            font-size: 0.88rem;
+            color: #334155;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        .info-box p {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-box p:last-child { margin-bottom: 0; }
+        .login-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            outline: none;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .login-input:focus {
+            border-color: #ff6600;
+            box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.15);
+        }
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #ff6600 0%, #e05300 100%);
+            color: #ffffff;
+            border: none;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 102, 0, 0.3);
+        }
+
+        /* HEADER & MENÚ DE PESTAÑAS CORPORATIVAS */
+        #app-container { display: none; }
+        #app-container.active { display: block; }
+        .main-header {
+            background-color: #0f172a; /* Azul noche profundo */
+            color: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 0 10px;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 0 10px 0;
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+        .header-brand span { color: #ff6600; }
+        .brand-logo-header {
+            height: 36px;
+            width: auto;
+            margin-right: 10px;
+            border-radius: 8px;
+        }
+        .nav-tabs {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            gap: 6px;
+            padding: 6px 4px 10px 4px;
+        }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        .tab-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            padding: 10px 14px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .tab-item i { font-size: 1rem; }
+        .tab-item:hover {
+            color: #f1f5f9;
+            background-color: rgba(255,255,255,0.05);
+        }
+        .tab-item.active {
+            color: #ffffff;
+            background-color: #ff6600;
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.25);
+        }
+
+        /* SECCIONES Y CONTENEDORES FLOTANTES (CARDS) */
+        .view-section {
+            display: none;
+            padding: 24px 15px;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+        .view-section.active { display: block; }
+
+        .card-panel {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+            margin-bottom: 24px;
+            border: 1px solid #edf2f7;
+            position: relative;
+        }
+        .panel-title {
+            font-size: 1.2rem;
+            color: #0f172a;
+            margin-bottom: 22px;
+            font-weight: 700;
+            border-left: 5px solid #ff6600;
+            padding-left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* DISEÑO DE FORMULARIOS AVANZADOS */
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            color: #1e293b;
+            font-weight: 500;
+            outline: none;
+            background-color: #ffffff;
+            transition: all 0.25s ease;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #ff6600;
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.12);
+            background-color: #f8fafc;
+        }
+        .form-row-2 {
+            display: flex;
+            gap: 14px;
+        }
+        .form-row-2 .form-group { flex: 1; }
+
+        /* BOTONES DE ACCIÓN GLOBAL */
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #ff6600 0%, #e05300 100%);
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.15);
+            transition: all 0.25s ease;
+        }
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(255, 102, 0, 0.25);
+        }
+        .btn-dark-blue {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+            box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15);
+        }
+        .btn-dark-blue:hover {
+            box-shadow: 0 6px 16px rgba(30, 41, 59, 0.25);
+        }
+        .btn-red {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+        }
+        .btn-red:hover {
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+        }
+
+        /* AUTOCOMPLETADO FLOTANTE SÚPER LIMPIO */
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1500;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            margin-top: 4px;
+        }
+        .suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+        .suggestion-item:hover { background-color: #f8fafc; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item .sug-meta { color: #64748b; font-size: 0.78rem; font-weight: 500; }
+
+        /* DASHBOARD METRICS (INDICADORES EJECUTIVOS) */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        @media(min-width: 520px) {
+            .dashboard-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        .dash-card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 14px 12px;
+            text-align: center;
+            border: 1px solid #edf2f7;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .dash-card .title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        .dash-card .value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .dash-card.active-val .value { color: #ff6600; }
+        .dash-card.neto-pos .value { color: #10b981; }
+        .dash-card.neto-neg .value { color: #ef4444; }
+
+        /* TABLAS EJECUTIVAS INTEGRADAS REFACTORIZADAS */
+        .table-section-title {
+            font-size: 1.05rem;
+            color: #0f172a;
+            margin-bottom: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            background-color: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+            border: 1px solid #edf2f7;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+        th {
+            background-color: #0f172a; /* Encabezado oscuro premium */
+            color: #f8fafc;
+            font-weight: 600;
+            padding: 14px 12px;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr { transition: background-color 0.2s ease; }
+        .table-clickable tr { cursor: pointer; }
+        .table-clickable tr:hover { background-color: #f8fafc; }
+        
+        .text-bold { font-weight: 600; color: #0f172a; }
+        .text-sub { display: block; font-size: 0.75rem; color: #64748b; margin-top: 3px; font-weight: 400; }
+        .text-italic { font-style: italic; color: #64748b; }
+        .text-orange { color: #ff6600; font-weight: 700; }
+        
+        .badge-blue {
+            background-color: #eff6ff;
+            color: #1d4ed8;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border: 1px solid #dbeafe;
+        }
+        
+        .action-cell {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .action-btn {
+            background: #f1f5f9;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 6px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .action-btn:hover { background-color: #e2e8f0; transform: scale(1.05); }
+
+        /* SECCIONES SECUNDARIAS COMPACTAS */
+        .income-report-grid { display: none; }
+        .expense-list {
+            margin-top: 18px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: 1px dashed #e2e8f0;
+            color: #334155;
+            align-items: center;
+        }
+        .expense-item:last-child { border-bottom: none; }
+
+        /* OVERLAYS Y MODALES MODERNIZADOS */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px); /* Efecto cristalino moderno */
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            z-index: 5000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-body {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15);
+        }
+
+        .wa-share-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        .wa-button-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .btn-wa-target {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.92rem;
+            transition: all 0.2s ease;
+        }
+        .btn-wa-target:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+        .btn-wa-target i { color: #25d366; font-size: 1.4rem; }
+
+        .receipt-config-box {
+            background: #f8fafc; padding: 14px; border-radius: 10px; margin-bottom: 18px; border: 1px solid #e2e8f0;
+        }
+        .config-inputs { display: flex; gap: 10px; }
+        .config-inputs input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; text-align: center; }
+        
+        #print-ticket-area {
+            background-color: #ffffff; color: #000000; padding: 22px; border: 1px solid #cbd5e1; font-family: 'Courier New', Courier, monospace; border-radius: 4px;
+        }
+        .tkt-header { text-align: center; margin-bottom: 12px; }
+        .tkt-header .title { font-size: 1.35rem; font-weight: bold; font-family: 'Courier New', sans-serif; }
+        .tkt-header p { font-size: 0.78rem; margin-top: 2px; }
+        .tkt-line { border-top: 2px dashed #000000; margin: 12px 0; }
+        .tkt-body { font-size: 0.82rem; line-height: 1.5; }
+        .tkt-field { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .tkt-field .label { font-weight: bold; }
+        .tkt-totals { margin-top: 12px; padding-top: 6px; }
+        .tkt-total-usd { font-weight: bold; font-size: 1.05rem; }
+        .tkt-total-bs { font-weight: bold; font-size: 0.95rem; margin-top: 2px; }
+
+        .modal-footer-btns { display: flex; gap: 12px; margin-top: 18px; }
+        .btn-modal-action {
+            flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.88rem;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease;
+        }
+        .btn-modal-close { background-color: #e2e8f0; color: #475569; }
+        .btn-modal-close:hover { background-color: #cbd5e1; }
+        .btn-modal-download { background-color: #25d366; color: #ffffff; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2); }
+        .btn-modal-download:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(37, 211, 102, 0.3); }
+
+        /* DISEÑO DE FACTURA INTERNA (Alineación perfecta e imagen de marca visible) */
+        #recibo-diseno-factura {
+            display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 360px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
+        }
+        #seccion-vista-previa img { box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="contenedor-alertas-flotantes"></div>
+
+    <div id="login-view">
+        <div class="login-card">
+            <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-login">
+            <div class="login-title">SUNDELIVERY</div>
+            <div class="login-subtitle">Valencia</div>
+            
+            <div class="info-box">
+                <p><i class="fa-solid fa-location-dot" style="color:#ff6600"></i> <strong>Dirección:</strong> Urb. Parral, CC Piazza, Postal 2001</p>
+                <p><i class="fa-solid fa-phone" style="color:#ff6600"></i> <strong>Teléfono:</strong> 04244529892</p>
+                <p><i class="fa-brands fa-instagram" style="color:#ff6600"></i> <strong>Instagram:</strong> @SunDeliveryVal</p>
+                <p><i class="fa-brands fa-facebook" style="color:#ff6600"></i> <strong>Facebook:</strong> SunDeliveryval</p>
+            </div>
+
+            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario / Aliado" style="margin-bottom:10px;">
+            <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña">
+            <button class="btn-login" onclick="validateLogin()">Entrar al Sistema</button>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <header class="main-header">
+            <div class="header-brand">
+                <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-header">
+                SUN<span>DELIVERY</span> Val <span id="badge-rol" style="font-size:0.75rem; margin-left:8px; padding:2px 8px; background:#ff6600; color:#fff; border-radius:8px;">Admin</span>
+            </div>
+            <nav class="nav-tabs" id="menu-navegacion">
+                <div id="tab-agregar" class="tab-item active" onclick="switchTab('agregar')"><i class="fa-solid fa-circle-plus"></i>Pedido</div>
+                <div id="tab-gestion" class="tab-item" onclick="switchTab('gestion')"><i class="fa-solid fa-folder-open"></i>Gestión</div>
+                <div id="tab-clientes" class="tab-item v-admin" onclick="switchTab('clientes')"><i class="fa-solid fa-users"></i>Clientes</div>
+                <div id="tab-motorizados" class="tab-item v-admin" onclick="switchTab('motorizados')"><i class="fa-solid fa-motorcycle"></i>Rutas</div>
+                <div id="tab-aliados" class="tab-item v-admin" onclick="switchTab('aliados')"><i class="fa-solid fa-handshake"></i>Aliados</div>
+            </nav>
+        </header>
+
+        <div id="view-agregar" class="view-section active">
+            <div class="card-panel v-admin" style="border-left: 5px solid #10b981;">
+                <div class="panel-title" style="border:none; padding:0; margin-bottom:12px;"><i class="fa-solid fa-sliders" style="color:#10b981"></i> Ajustes Operativos</div>
+                <div class="form-group" style="margin:0;">
+                    <label>Comisión Motorizados (%)</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="number" id="cfg-comision" value="70" min="0" max="100" style="padding:8px 12px; width:100px; text-align:center;">
+                        <button type="button" class="btn-submit" style="padding:10px; background:#10b981; font-size:0.85rem; width:auto;" onclick="saveComisionConfig()">Actualizar %</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-panel">
+                <div class="panel-title" id="form-pedido-title"><i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido</div>
+                <form id="form-pedido" onsubmit="processNewPedido(event)" autocomplete="off">
+                    <div class="form-group">
+                        <label>Teléfono Cliente</label>
+                        <input type="text" id="ped-telefono" placeholder="Escriba teléfono para buscar..." oninput="triggerAutocomplete('telefono')" required>
+                        <div id="sug-telefono" class="autocomplete-suggestions" style="display:none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre Cliente</label>
+                        <input type="text" id="ped-nombre" placeholder="Escriba nombre para buscar..." oninput="triggerAutocomplete('nombre')" required>
+                        <div id="sug-nombre" class="autocomplete-suggestions" style="display:none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección Cliente</label>
+                        <input type="text" id="ped-direccion" placeholder="Dirección de entrega" required>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group" id="container-select-aliado">
+                            <label>Aliado Comercial</label>
+                            <select id="ped-aliado" required>
+                                <option value="">Seleccione un aliado...</option>
+                            </select>
+                        </div>
+                        <div class="form-group v-admin">
+                            <label>Motorizado / Delivery</label>
+                            <select id="ped-motorizado">
+                                <option value="">Seleccione un motorizado...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Costo Delivery ($)</label>
+                        <input type="number" step="0.01" id="ped-costo" placeholder="Monto en USD" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Características / Detalles del Pedido</label>
+                        <textarea id="ped-detalles" rows="3" placeholder="Especificaciones del paquete, productos, etc."></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit" id="btn-submit-pedido"><i class="fa-solid fa-floppy-disk"></i> Guardar Pedido</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="view-gestion" class="view-section">
+            <div class="dashboard-grid">
+                <div class="dash-card"><div class="title">Órdenes</div><div class="value" id="dash-cant-pedidos">0</div></div>
+                <div class="dash-card active-val"><div class="title">Ingreso USD</div><div class="value" id="dash-ingreso-usd">$0.00</div></div>
+                <div class="dash-card v-admin"><div class="title">Gastos</div><div class="value" id="dash-gasto-usd" style="color:#ef4444;">$0.00</div></div>
+                <div class="dash-card neto-pos v-admin" id="dash-neto-box"><div class="title">Balance</div><div class="value" id="dash-balance-neto">$0.00</div></div>
+            </div>
+
+            <div class="card-panel">
+                <div class="panel-title"><i class="fa-solid fa-filter" style="color:#ff6600"></i> Búsqueda Avanzada y Control</div>
+                <div class="form-row-2">
+                    <div class="form-group"><label>Desde Fecha</label><input type="date" id="filtro-fecha-desde" onchange="renderPedidos()"></div>
+                    <div class="form-group"><label>Hasta Fecha</label><input type="date" id="filtro-fecha-hasta" onchange="renderPedidos()"></div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group" id="filtro-aliado-box">
+                        <label>Filtrar por Aliado</label>
+                        <select id="filtro-aliado-busqueda" onchange="renderPedidos()"><option value="">Todos los Aliados</option></select>
+                    </div>
+                    <div class="form-group v-admin">
+                        <label>Filtrar por Motorizado</label>
+                        <select id="filtro-motorizado-busqueda" onchange="renderPedidos()"><option value="">Todos los Motorizados</option></select>
+                    </div>
+                </div>
+                <button type="button" class="btn-submit btn-dark-blue" style="margin-top: 5px; padding: 10px; font-size: 0.85rem;" onclick="limpiarFiltrosBusqueda()"><i class="fa-solid fa-trash-can"></i> Limpiar Filtros de Búsqueda</button>
+            </div>
+
+            <div class="table-section-title"><i class="fa-solid fa-list-check" style="color:#0f172a"></i> Listado de Pedidos</div>
+            <div class="table-responsive">
+                <table class="table-clickable">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Cliente</th>
+                            <th>Dirección</th>
+                            <th>Aliado</th>
+                            <th>Motorizado</th>
+                            <th>Costo ($)</th>
+                            <th>Detalles</th>
+                            <th class="v-admin">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-pedidos-body"></tbody>
+                </table>
+            </div>
+
+            <div class="card-panel v-admin">
+                <div class="panel-title"><i class="fa-solid fa-file-invoice-dollar" style="color:#ff6600"></i> Generar Cuentas y Recibos</div>
+                
+                <div class="form-group">
+                    <label>Tipo de Recibo</label>
+                    <select id="invoice-tipo-entidad" onchange="toggleInvoiceFields()">
+                        <option value="ALIADO">Aliado Comercial</option>
+                        <option value="MOTORIZADO">Nómina / Recibo de Motorizado</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="invoice-aliado-group">
+                    <label>Seleccionar Aliado Comercial</label>
+                    <select id="invoice-aliado">
+                        <option value="">Seleccione Aliado...</option>
+                        <option value="TODOS_LOS_ALIADOS">-- SELECCIONAR TODOS LOS ALIADOS --</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="invoice-motorizado-group" style="display:none;">
+                    <label>Seleccionar Motorizado / Repartidor</label>
+                    <select id="invoice-motorizado-payroll">
+                        <option value="">Seleccione Motorizado...</option>
+                    </select>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group"><label>Desde Fecha</label><input type="date" id="invoice-fecha-desde"></div>
+                    <div class="form-group"><label>Hasta Fecha</label><input type="date" id="invoice-fecha-hasta"></div>
+                </div>
+                <div class="form-group">
+                    <label>Tasa del Día (Bs)</label>
+                    <input type="number" id="invoice-tasa" value="45.50" step="0.01">
+                </div>
+                <button class="btn-submit btn-dark-blue" onclick="processInvoiceGeneration()"><i class="fa-solid fa-gears"></i> Generar Recibo de Liquidación</button>
+            </div>
+
+            <div id="seccion-vista-previa" class="card-panel" style="display: none; text-align: center;">
+                <div class="panel-title" style="border-left-color: #25d366;"><i class="fa-solid fa-image" style="color:#25d366"></i> Vista Previa Digital</div>
+                <img id="imagen-vista-previa" src="" alt="Factura de Cobro" style="max-width: 100%; width: 340px; border: 1px solid #cbd5e1; margin-bottom: 15px;">
+                <a id="boton-descargar-jpg" href="#" class="btn-submit" style="background-color: #25d366; text-decoration: none; padding: 14px;">
+                    <i class="fa-solid fa-circle-down"></i> Descargar Factura para WhatsApp
+                </a>
+            </div>
+
+            <div id="recibo-diseno-factura">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1;">
+                    <img src="3871.jpg" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.16; filter: contrast(108%);">
+                </div>
+                <div style="position: relative; z-index: 2;">
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 1.25rem; font-weight: bold;">SunDelivery Valencia C, A</h3>
+                        <p style="font-size: 0.75rem;">Dirección: Urb. Parral, CC. Piazza</p>
+                        <p style="font-size: 0.75rem;">INSTAGRAM: @SunDeliveryVal</p>
+                        <h4 id="fact-titulo-documento" style="font-size: 0.85rem; margin-top: 12px; font-weight: bold; border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 5px 0;">FACTURA CONSOLIDADA DE COBRO</h4>
+                    </div>
+                    <div style="font-size: 0.78rem; line-height: 1.5; margin-bottom: 15px;">
+                        <div id="fact-bloque-entidad"><b>Aliado Comercial:</b> <span id="fact-nom-aliado">-</span></div>
+                        <div><b>Período Relación:</b> <span id="fact-fecha-relacion">-</span></div>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left; margin-bottom: 12px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #000;">
+                                <th style="padding: 6px 0; background:none; color:#000;">Detalle / Orden</th>
+                                <th style="padding: 6px 0; text-align: right; background:none; color:#000;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fact-detalles-ordenes"></tbody>
+                    </table>
+                    <div style="border-top: 2px dashed #000; padding-top: 8px; font-size: 0.82rem;">
+                        <div style="display: flex; justify-content: space-between;"><span>Tasa del Día Ref:</span> <span><span id="fact-tasa">-</span> Bs/$</span></div>
+                        <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: bold; margin-top: 6px; border-top: 1px solid #000; padding-top: 4px;"><span>TOTAL USD:</span> <span>$<span id="fact-total-usd">-</span></span></div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: bold;"><span>TOTAL BS:</span> <span><span id="fact-total-bs">-</span> Bs</span></div>
+                    </div>
+                    <div style="margin-top: 15px; border: 1px dashed #000; padding: 10px; font-size: 0.75rem; background-color: rgba(250, 250, 250, 0.88);">
+                        <div style="font-weight: bold; text-align: center; margin-bottom: 4px;">📌 Información de Cierre:</div>
+                        <div id="footer-pago-movil"><b>Banco:</b> Banesco / Venezuela<br><b>Teléfono:</b> 04244529892<br><b>RIF:</b> 18410871</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-panel v-admin">
+                <div class="panel-title"><i class="fa-solid fa-receipt" style="color:#ff6600"></i> Control de Gastos Administrativos</div>
+                <form id="form-gastos" onsubmit="registerGasto(event)">
+                    <div class="form-row-2">
+                        <div class="form-group" style="flex: 2;"><input type="text" id="gasto-detalle" placeholder="Detalle del Gasto" required></div>
+                        <div class="form-group" style="flex: 1;"><input type="number" step="0.01" id="gasto-monto" placeholder="Monto ($)" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit btn-red"><i class="fa-solid fa-hand-holding-dollar"></i> Registrar Gasto</button>
+                </form>
+                <div class="expense-list" id="expense-container">Sin gastos.</div>
+            </div>
+        </div>
+
+        <div id="view-clientes" class="view-section">
+            <div class="card-panel">
+                <div class="panel-title" id="form-cliente-title"><i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes</div>
+                <form id="form-directorio-cliente" onsubmit="saveDirectorioCliente(event)">
+                    <div class="form-group"><label>Teléfono Celular</label><input type="text" id="cli-telefono" placeholder="Ej. 04241112233" required></div>
+                    <div class="form-group"><label>Nombre y Apellido</label><input type="text" id="cli-nombre" placeholder="Nombre completo del cliente" required></div>
+                    <div class="form-group"><label>Dirección Frecuente</label><input type="text" id="cli-direccion" placeholder="Urb, Sector, Calle, Edificio/Casa" required></div>
+                    <button type="submit" class="btn-submit" id="btn-submit-cliente-dir"><i class="fa-solid fa-user-plus"></i> Guardar en Cartera</button>
+                </form>
+            </div>
+            <div class="table-section-title"><i class="fa-solid fa-users-viewfinder" style="color:#0f172a"></i> Cartera Comercial Activa</div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Cliente</th><th>Teléfono</th><th>Dirección de Envío habitual</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-clientes-directorio-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-motorizados" class="view-section">
+            <div class="card-panel">
+                <div class="panel-title" id="form-moto-title"><i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores</div>
+                <form id="form-motorizado" onsubmit="saveMotorizado(event)">
+                    <div class="form-group"><label>Nombre</label><input type="text" id="moto-nombre" required></div>
+                    <div class="form-group"><label>Teléfono</label><input type="text" id="moto-telefono" required></div>
+                    <div class="form-group"><label>Placa / Moto</label><input type="text" id="moto-placa" required></div>
+                    <div class="form-group"><label>Dirección</label><input type="text" id="moto-direccion" required></div>
+                    <button type="submit" class="btn-submit" id="btn-submit-moto"><i class="fa-solid fa-circle-check"></i> Guardar Repartidor</button>
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Nombre</th><th>Teléfono</th><th>Moto</th><th>Dirección</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-motorizados-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-aliados" class="view-section">
+            <div class="card-panel">
+                <div class="panel-title" id="form-aliado-title"><i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado</div>
+                <form id="form-aliado" onsubmit="saveAliado(event)">
+                    <div class="form-group"><label>Nombre Comercial (Será su Usuario)</label><input type="text" id="aliado-nombre" placeholder="Ej. SushiFever" required></div>
+                    <div class="form-group"><label>PIN / Contraseña de Ingreso</label><input type="text" id="aliado-pin" placeholder="Ej. 2026" required></div>
+                    <div class="form-group"><label>Teléfono</label><input type="text" id="aliado-telefono" required></div>
+                    <div class="form-group"><label>Dirección</label><input type="text" id="aliado-direccion" required></div>
+                    <button type="submit" class="btn-submit" id="btn-submit-aliado"><i class="fa-solid fa-circle-check"></i> Guardar Comercio</button>
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Nombre / Usuario</th><th>Teléfono</th><th>Dirección</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-aliados-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="whatsapp-modal" class="modal-overlay">
+        <div class="modal-body">
+            <div class="wa-share-title">🚀 ¡Pedido Sincronizado en la Nube!</div>
+            <div class="wa-button-list">
+                <a id="wa-btn-cliente" class="btn-wa-target" target="_blank"><span>Notificar al Cliente</span> <i class="fa-brands fa-whatsapp"></i></a>
+                <a id="wa-btn-aliado" class="btn-wa-target" target="_blank"><span>Notificar al Aliado</span> <i class="fa-brands fa-whatsapp"></i></a>
+                <a id="wa-btn-motorizado" class="btn-wa-target" target="_blank"><span>Notificar al Motorizado</span> <i class="fa-brands fa-whatsapp"></i></a>
+            </div>
+            <button class="btn-submit" onclick="closeWhatsAppModal()">Continuar Operación</button>
+        </div>
+    </div>
+
+    <div id="receipt-modal" class="modal-overlay">
+        <div class="modal-body">
+            <div class="receipt-config-box">
+                <div class="config-inputs">
+                    <input type="number" id="modal-tasa" value="45.50" step="0.01" oninput="updateTicketCalculations()">
+                    <input type="number" id="modal-monto" value="5.00" step="0.01" oninput="updateTicketCalculations()">
+                </div>
+            </div>
+            <div id="print-ticket-area">
+                <div class="tkt-header"><div class="title">SUN<span>DELIVERY</span></div><p>Valencia, Carabobo</p></div>
+                <div class="tkt-line"></div>
+                <div class="tkt-body">
+                    <div class="tkt-field"><span class="label">Cliente:</span> <span id="tkt-cliente">-</span></div>
+                    <div class="tkt-field"><span class="label">Tlf:</span> <span id="tkt-tlf">-</span></div>
+                    <div class="tkt-field"><span class="label">Dirección:</span> <span id="tkt-dir">-</span></div>
+                    <div class="tkt-field"><span class="label">Aliado:</span> <span id="tkt-aliado">-</span></div>
+                    <div class="tkt-field"><span class="label">Repartidor:</span> <span id="tkt-moto">-</span></div>
+                    <div class="tkt-line"></div>
+                    <div class="tkt-totals">
+                        <div class="tkt-field"><span class="label">Tasa Ref:</span> <span><span id="tkt-tasa-text">45.50</span> Bs</span></div>
+                        <div class="tkt-field tkt-total-usd"><span class="label">TOTAL USD:</span> <span>$<span id="tkt-usd-text">5.00</span></span></div>
+                        <div class="tkt-field tkt-total-bs"><span class="label">TOTAL BS:</span> <span><span id="tkt-bs-text">227.50</span> Bs</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer-btns">
+                <button class="btn-modal-action btn-modal-close" onclick="closeReceiptModal()">Cerrar</button>
+                <button class="btn-modal-action btn-modal-download" onclick="triggerDownloadJPG()"><i class="fa-solid fa-download"></i> Guardar Imagen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA147jH0Tt_ZlJyAmoaeJKdDMtNF1VG4E4",
+            authDomain: "sunvalencia-609f5.firebaseapp.com",
+            projectId: "sunvalencia-609f5",
+            storageBucket: "sunvalencia-609f5.firebasestorage.app",
+            messagingSenderId: "339030334268",
+            appId: "1:339030334268:web:3be1db9248948343591c39",
+            measurementId: "G-N345DPZFFG"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let aliados = [];
+        let motorizados = [];
+        let pedidos = [];
+        let gastos = [];
+        let directorioClientes = [];
+
+        let selectedPedido = null;
+        let editPedidoId = null;
+        let editMotoId = null;
+        let editAliadoId = null;
+        let editClienteDirId = null;
+
+        // Variables de Roles y Configuración
+        let usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
+        let porcComisionMotorizado = 0.70; // 70% por defecto
+        let cargaInicialPedidos = true;
+
+        // EJECUTAR SINCRONIZACIÓN INMEDIATA AL CARGAR EL SCRIPT DE LA APP
+        syncCloudData();
+
+        // SECCIÓN DE INICIO DE SESIÓN CORREGIDA Y OPTIMIZADA (SOPORTA MAYÚSCULAS Y ESPACIOS)
+        function validateLogin() {
+            const userIn = document.getElementById('username-input').value.trim().toLowerCase();
+            const pinIn = document.getElementById('pin-input').value.trim();
+
+            if (!userIn || !pinIn) {
+                Swal.fire("Campos vacíos", "Por favor ingresa usuario y contraseña.", "warning");
+                return;
+            }
+
+            // Acceso de Dueño / Administrador Principal
+            if (userIn === 'admin' && pinIn === '1987') { 
+                usuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
+                arrancarAplicacion();
+            } else {
+                // Validación Dinámica con total tolerancia a mayúsculas, minúsculas y espacios
+                const aliadoExiste = aliados.find(a => a.nombre.trim().toLowerCase() === userIn);
+                
+                if (aliadoExiste && String(aliadoExiste.pin).trim() === pinIn) { 
+                    usuarioActual = { username: aliadoExiste.nombre, rol: "aliado", aliadoComercial: aliadoExiste.nombre };
+                    arrancarAplicacion();
+                } else {
+                    Swal.fire("Error de Acceso", "Usuario o PIN de aliado incorrectos o base de datos actualizándose.", "error");
+                }
+            }
+        }
+
+        function arrancarAplicacion() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('app-container').classList.add('active');
+            
+            const hoyISO = getVenezuelaDate();
+            document.getElementById('filtro-fecha-desde').value = hoyISO;
+            document.getElementById('filtro-fecha-hasta').value = hoyISO;
+            document.getElementById('invoice-fecha-desde').value = hoyISO;
+            document.getElementById('invoice-fecha-hasta').value = hoyISO;
+
+            // Ajustar UI según Rol
+            const badge = document.getElementById('badge-rol');
+            badge.innerText = usuarioActual.rol.toUpperCase();
+            
+            if (usuarioActual.rol === 'aliado') {
+                document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'none');
+                document.getElementById('filtro-aliado-box').style.display = 'none';
+                document.getElementById('container-select-aliado').style.display = 'none';
+            } else {
+                document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'block');
+                document.getElementById('filtro-aliado-box').style.display = 'block';
+                document.getElementById('container-select-aliado').style.display = 'block';
+            }
+
+            initRealTimeListener();
+            loadComisionConfig();
+            
+            document.addEventListener("click", function (e) {
+                if (!e.target.closest('.form-group')) {
+                    document.getElementById("sug-telefono").style.display = "none";
+                    document.getElementById("sug-nombre").style.display = "none";
+                }
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`view-${tabId}`).classList.add('active');
+        }
+
+        function loadComisionConfig() {
+            db.collection('configuracion').doc('general').get().then(doc => {
+                if (doc.exists && doc.data().comision_motorizado) {
+                    porcComisionMotorizado = doc.data().comision_motorizado;
+                    document.getElementById('cfg-comision').value = Math.round(porcComisionMotorizado * 100);
+                } else {
+                    db.collection('configuracion').doc('general').set({ comision_motorizado: 0.70 });
+                }
+            });
+        }
+
+        function saveComisionConfig() {
+            const inputVal = parseFloat(document.getElementById('cfg-comision').value) || 70;
+            const decimalVal = inputVal / 100;
+            db.collection('configuracion').doc('general').update({ comision_motorizado: decimalVal })
+            .then(() => {
+                porcComisionMotorizado = decimalVal;
+                Swal.fire("Ajuste Guardado", `La comisión global se fijó en ${inputVal}%`, "success");
+                renderPedidos();
+            });
+        }
+
+        function initRealTimeListener() {
+            db.collection('pedidos').onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added" && !cargaInicialPedidos) {
+                        const pedidoData = change.doc.data();
+                        if (usuarioActual.rol === 'admin' || (usuarioActual.rol === 'aliado' && pedidoData.aliado === usuarioActual.aliadoComercial)) {
+                            reproducirNotificacion();
+                            mostrarNotificacionFlotante(pedidoData);
+                        }
+                    }
+                });
+                cargaInicialPedidos = false;
+            });
+        }
+
+        function reproducirNotificacion() {
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav");
+            audio.play().catch(() => {});
+        }
+
+        function mostrarNotificacionFlotante(pedido) {
+            const cont = document.getElementById('contenedor-alertas-flotantes');
+            const alertBox = document.createElement('div');
+            alertBox.className = 'alerta-notificacion-rt';
+            alertBox.innerHTML = `
+                <div style="font-weight:800; color:#ff6600; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> ¡NUEVO PEDIDO ENTRANTE!</div>
+                <div style="font-size:0.85rem; line-height:1.4;">
+                    <b>Aliado:</b> ${pedido.aliado}<br>
+                    <b>Cliente:</b> ${pedido.cliente}<br>
+                    <b>Destino:</b> ${pedido.direccion}
+                </div>
+            `;
+            cont.appendChild(alertBox);
+            setTimeout(() => { alertBox.remove(); }, 7000);
+        }
+
+        function toggleInvoiceFields() {
+            const tipo = document.getElementById('invoice-tipo-entidad').value;
+            if (tipo === 'ALIADO') {
+                document.getElementById('invoice-aliado-group').style.display = 'block';
+                document.getElementById('invoice-motorizado-group').style.display = 'none';
+            } else {
+                document.getElementById('invoice-aliado-group').style.display = 'none';
+                document.getElementById('invoice-motorizado-group').style.display = 'block';
+            }
+        }
+
+        function processInvoiceGeneration() {
+            const tipo = document.getElementById('invoice-tipo-entidad').value;
+            if (tipo === 'ALIADO') {
+                generateAliadoInvoice();
+            } else {
+                generateMotorizadoPayrollInvoice();
+            }
+        }
+
+        function generateMotorizadoPayrollInvoice() {
+            const nomMoto = document.getElementById('invoice-motorizado-payroll').value;
+            const fDesde = document.getElementById('invoice-fecha-desde').value;
+            const fHasta = document.getElementById('invoice-fecha-hasta').value;
+
+            if (!nomMoto) { Swal.fire("Campo requerido", "Selecciona un motorizado para liquidar.", "info"); return; }
+            if (!fDesde || !fHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
+
+            const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
+
+            const pedidosFiltrados = pedidos.filter(p => {
+                const pedidoFechaISO = parseDateVEToISO(p.fecha);
+                if (p.motorizado !== nomMoto) return false;
+                if (pedidoFechaISO < fDesde || pedidoFechaISO > fHasta) return false;
+                return true;
+            });
+
+            if (pedidosFiltrados.length === 0) {
+                Swal.fire("Sin datos", "No existen rutas completadas por este repartidor en el rango seleccionado.", "info");
+                return;
+            }
+
+            document.getElementById('fact-titulo-documento').innerText = "RECIBO DE PAGO DE MOTORIZADO";
+            document.getElementById('fact-bloque-entidad').innerHTML = `<b>Motorizado:</b> <span>${nomMoto}</span><br><b>Porcentaje de Comisión:</b> <span>${Math.round(porcComisionMotorizado * 100)}%</span>`;
+            
+            const fDesdeFormateada = fDesde.split('-').reverse().join('/');
+            const fHastaFormateada = fHasta.split('-').reverse().join('/');
+            document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
+            document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+
+            const tbodyFactura = document.getElementById('fact-detalles-ordenes');
+            tbodyFactura.innerHTML = '';
+
+            let totalProducido = 0;
+            pedidosFiltrados.forEach(p => {
+                totalProducido += p.costo;
+                tbodyFactura.innerHTML += `
+                    <tr style="border-bottom: 1px dashed #dddddd;">
+                        <td style="padding: 6px 0;">${p.cliente} (${p.fecha})<br><span style="font-size:0.65rem; color:#666;">Aliado: ${p.aliado}</span></td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">$${p.costo.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            let comisionGanada = totalProducido * porcComisionMotorizado;
+
+            tbodyFactura.innerHTML += `
+                <tr style="border-top: 2px solid #000;">
+                    <td style="padding: 8px 0; font-weight: bold;">Subtotal Producido:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: bold;">$${totalProducido.toFixed(2)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0; font-weight: bold; color: #10b981;">Comisión Neta (${Math.round(porcComisionMotorizado * 100)}%):</td>
+                    <td style="padding: 4px 0; text-align: right; font-weight: bold; color: #10b981;">$${comisionGanada.toFixed(2)}</td>
+                </tr>
+            `;
+
+            document.getElementById('fact-total-usd').innerText = comisionGanada.toFixed(2);
+            document.getElementById('fact-total-bs').innerText = FormatearBs(comisionGanada * tasa);
+            document.getElementById('footer-pago-movil').innerHTML = "<b>Recibo generado automáticamente.</b><br>Pago correspondiente a comisiones por servicios de logística acumulados.";
+
+            renderInvoiceToImage(nomMoto);
+        }
+
+        function renderInvoiceToImage(entidadNombre) {
+            const disenoRecibo = document.getElementById('recibo-diseno-factura');
+            disenoRecibo.style.display = 'block';
+
+            Swal.fire({ title: 'Compilando imagen...', didOpen: () => { Swal.showLoading(); } });
+
+            html2canvas(disenoRecibo, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                document.getElementById('imagen-vista-previa').src = imgData;
+                document.getElementById('seccion-vista-previa').style.display = 'block';
+                document.getElementById('boton-descargar-jpg').href = imgData;
+                
+                const nombreArchivo = entidadNombre.replace(/\s+/g, '_');
+                document.getElementById('boton-descargar-jpg').download = `Recibo_${nombreArchivo}.jpg`;
+                
+                disenoRecibo.style.display = 'none';
+                Swal.close();
+                document.getElementById('seccion-vista-previa').scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+
+        function syncCloudData() {
+            db.collection('aliados').onSnapshot(snapshot => {
+                aliados = [];
+                snapshot.forEach(doc => aliados.push({ firestoreId: doc.id, ...doc.data() }));
+                renderAliados();
+                updateSelectDropdowns();
+            });
+
+            db.collection('motorizados').onSnapshot(snapshot => {
+                motorizados = [];
+                snapshot.forEach(doc => motorizados.push({ firestoreId: doc.id, ...doc.data() }));
+                renderMotorizados();
+                updateSelectDropdowns();
+            });
+
+            db.collection('gastos').onSnapshot(snapshot => {
+                gastos = [];
+                snapshot.forEach(doc => gastos.push({ firestoreId: doc.id, ...doc.data() }));
+                renderGastos();
+            });
+
+            db.collection('clientes').onSnapshot(snapshot => {
+                directorioClientes = [];
+                snapshot.forEach(doc => directorioClientes.push({ firestoreId: doc.id, ...doc.data() }));
+                renderClientesDirectorio();
+            });
+
+            db.collection('pedidos').onSnapshot(snapshot => {
+                pedidos = [];
+                snapshot.forEach(doc => pedidos.push({ firestoreId: doc.id, ...doc.data() }));
+                pedidos.sort((a, b) => b.id - a.id);
+                renderPedidos();
+            });
+        }
+
+        function triggerAutocomplete(type) {
+            const valInputTel = document.getElementById("ped-telefono").value.trim().toLowerCase();
+            const valInputNom = document.getElementById("ped-nombre").value.trim().toLowerCase();
+            
+            const boxTel = document.getElementById("sug-telefono");
+            const boxNom = document.getElementById("sug-nombre");
+
+            boxTel.innerHTML = "";
+            boxNom.innerHTML = "";
+            boxTel.style.display = "none";
+            boxNom.style.display = "none";
+
+            if (type === 'telefono' && valInputTel.length >= 2) {
+                const coincidencias = directorioClientes.filter(c => c.telefono.toLowerCase().includes(valInputTel));
+                if (coincidencias.length > 0) {
+                    boxTel.style.display = "block";
+                    coincidencias.forEach(c => {
+                        const div = document.createElement("div");
+                        div.className = "suggestion-item";
+                        div.innerHTML = `<span>📱 <b>${c.telefono}</b></span><span class="sug-meta">${c.nombre}</span>`;
+                        div.onclick = () => fillFormFromSuggestion(c);
+                        boxTel.appendChild(div);
+                    });
+                }
+            } 
+            else if (type === 'nombre' && valInputNom.length >= 2) {
+                const coincidencias = directorioClientes.filter(c => c.nombre.toLowerCase().includes(valInputNom));
+                if (coincidencias.length > 0) {
+                    boxNom.style.display = "block";
+                    coincidencias.forEach(c => {
+                        const div = document.createElement("div");
+                        div.className = "suggestion-item";
+                        div.innerHTML = `<span>👤 <b>${c.nombre}</b></span><span class="sug-meta">${c.telefono}</span>`;
+                        div.onclick = () => fillFormFromSuggestion(c);
+                        boxNom.appendChild(div);
+                    });
+                }
+            }
+        }
+
+        function fillFormFromSuggestion(cliente) {
+            document.getElementById("ped-telefono").value = cliente.telefono;
+            document.getElementById("ped-nombre").value = cliente.nombre;
+            document.getElementById("ped-direccion").value = cliente.direccion;
+            
+            document.getElementById("sug-telefono").style.display = "none";
+            document.getElementById("sug-nombre").style.display = "none";
+
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Cliente cargado con éxito', showConfirmButton: false, timer: 1500 });
+        }
+
+        function saveDirectorioCliente(e) {
+            e.preventDefault();
+            const nom = document.getElementById('cli-nombre').value.trim();
+            const tlf = document.getElementById('cli-telefono').value.trim();
+            const dir = document.getElementById('cli-direccion').value.trim();
+
+            if (editClienteDirId !== null) {
+                // CORREGIDO: Se cambia 'telephone' por 'telefono' para mantener consistencia y evitar fallos de persistencia
+                db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
+                .then(() => {
+                    editClienteDirId = null;
+                    document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes`;
+                    document.getElementById('btn-submit-cliente-dir').innerHTML = `<i class="fa-solid fa-user-plus"></i> Guardar en Cartera`;
+                    document.getElementById('form-directorio-cliente').reset();
+                    Swal.fire("Actualizado", "Datos del cliente modificados en la nube.", "success");
+                });
+            } else {
+                db.collection('clientes').add({ nombre: nom, telefono: tlf, direccion: dir, creado: Date.now() })
+                .then(() => {
+                    document.getElementById('form-directorio-cliente').reset();
+                    Swal.fire("Guardado", "Cliente nuevo añadido a la cartera comercial.", "success");
+                });
+            }
+        }
+
+        function renderClientesDirectorio() {
+            const tbody = document.getElementById('tabla-clientes-directorio-body');
+            tbody.innerHTML = '';
+            if(directorioClientes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">Ningún cliente en la base de datos de la cartera.</td></tr>`;
+                return;
+            }
+            directorioClientes.forEach(c => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-bold">${c.nombre}</td>
+                        <td>${c.telefono}</td>
+                        <td>${c.direccion}</td>
+                        <td>
+                            <div class="action-cell">
+                                <button type="button" class="action-btn" onclick="editClienteDir('${c.firestoreId}')">✏️</button>
+                                <button type="button" class="action-btn" onclick="deleteClienteDir('${c.firestoreId}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editClienteDir(fId) {
+            const c = directorioClientes.find(item => item.firestoreId === fId);
+            if (!c) return;
+            editClienteDirId = fId;
+            document.getElementById('form-cliente-title').innerHTML = `✏️ Editar Ficha Cliente`;
+            document.getElementById('btn-submit-cliente-dir').innerHTML = `Actualizar Cliente`;
+            document.getElementById('cli-nombre').value = c.nombre;
+            document.getElementById('cli-telefono').value = c.telefono;
+            document.getElementById('cli-direccion').value = c.direccion;
+        }
+
+        function deleteClienteDir(fId) {
+            Swal.fire({
+                title: '¿Eliminar de la cartera?',
+                text: "El cliente ya no aparecerá en las sugerencias automáticas.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6600',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, borrar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    db.collection('clientes').doc(fId).delete().then(() => {
+                        Swal.fire('Removido', 'Cliente desvinculado.', 'success');
+                    });
+                }
+            });
+        }
+
+        function limpiarFiltrosBusqueda() {
+            const hoyISO = getVenezuelaDate();
+            document.getElementById('filtro-fecha-desde').value = hoyISO;
+            document.getElementById('filtro-fecha-hasta').value = hoyISO;
+            document.getElementById('filtro-aliado-busqueda').value = "";
+            if(document.getElementById('filtro-motorizado-busqueda')) document.getElementById('filtro-motorizado-busqueda').value = "";
+            renderPedidos();
+        }
+
+        function registerGasto(event) {
+            event.preventDefault();
+            const det = document.getElementById('gasto-detalle').value;
+            const mon = parseFloat(document.getElementById('gasto-monto').value) || 0;
+            
+            db.collection('gastos').add({ detalle: det, monto: mon, fecha: getVenezuelaDate() }).then(() => {
+                document.getElementById('form-gastos').reset();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado', showConfirmButton: false, timer: 1500 });
+            });
+        }
+
+        function renderGastos() {
+            const container = document.getElementById('expense-container');
+            if (gastos.length === 0) { container.innerHTML = 'Sin egresos registrados.'; return; }
+            container.innerHTML = '';
+            gastos.forEach(g => {
+                container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
+            });
+            renderPedidos();
+        }
+
+        function deleteGasto(id) {
+            Swal.fire({
+                title: '¿Eliminar Gasto?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Eliminar'
+            }).then((res) => {
+                if(res.isConfirmed) db.collection('gastos').doc(id).delete();
+            });
+        }
+
+        function renderPedidos() {
+            const tbody = document.getElementById('tabla-pedidos-body');
+            tbody.innerHTML = '';
+
+            const fDesde = document.getElementById('filtro-fecha-desde').value;
+            const fHasta = document.getElementById('filtro-fecha-hasta').value;
+            
+            const fAliado = usuarioActual.rol === 'aliado' ? usuarioActual.aliadoComercial : document.getElementById('filtro-aliado-busqueda').value;
+            const fMotorizado = usuarioActual.rol === 'aliado' ? "" : document.getElementById('filtro-motorizado-busqueda').value;
+
+            const pedidosFiltrados = pedidos.filter(p => {
+                const pedidoFechaISO = parseDateVEToISO(p.fecha);
+                if (fDesde && pedidoFechaISO < fDesde) return false;
+                if (fHasta && pedidoFechaISO > fHasta) return false;
+                if (fAliado && p.aliado !== fAliado) return false;
+                if (fMotorizado && p.motorizado !== fMotorizado) return false;
+                return true;
+            });
+
+            let totalIngresos = 0;
+            pedidosFiltrados.forEach(p => {
+                totalIngresos += p.costo;
+            });
+            
+            let totalGastos = 0;
+            if (usuarioActual.rol === 'admin') {
+                const gastosFiltrados = gastos.filter(g => {
+                    if (fDesde && g.fecha < fDesde) return false;
+                    if (fHasta && g.fecha > fHasta) return false;
+                    return true;
+                });
+                gastosFiltrados.forEach(g => totalGastos += g.monto);
+            }
+
+            let neto = totalIngresos - totalGastos;
+
+            document.getElementById('dash-cant-pedidos').innerText = pedidosFiltrados.length;
+            document.getElementById('dash-ingreso-usd').innerText = `$${totalIngresos.toFixed(2)}`;
+            
+            if (usuarioActual.rol === 'admin') {
+                document.getElementById('dash-gasto-usd').innerText = `$${totalGastos.toFixed(2)}`;
+                document.getElementById('dash-balance-neto').innerText = `$${neto.toFixed(2)}`;
+                const boxNeto = document.getElementById('dash-neto-box');
+                if(neto >= 0) { boxNeto.className = "dash-card neto-pos"; } else { boxNeto.className = "dash-card neto-neg"; }
+            }
+
+            if(pedidosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;" class="text-italic">No hay pedidos registrados con los filtros seleccionados.</td></tr>`;
+                return;
+            }
+
+            pedidosFiltrados.forEach(p => {
+                let btnAcciones = usuarioActual.rol === 'admin' ? `
+                    <td>
+                        <div class="action-cell">
+                            <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
+                            <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
+                        </div>
+                    </td>
+                ` : `<td class="v-admin"></td>`;
+
+                tbody.innerHTML += `
+                    <tr onclick="openReceiptModal('${p.firestoreId}')">
+                        <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
+                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                        <td>${p.direccion}</td>
+                        <td>${p.aliado}</td>
+                        <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
+                        <td class="text-orange">$${p.costo.toFixed(2)}</td>
+                        <td>${p.detalles}</td>
+                        ${btnAcciones}
+                    </tr>
+                `;
+            });
+        }
+
+        function processNewPedido(e) {
+            e.preventDefault();
+            const clientName = document.getElementById('ped-nombre').value.trim();
+            const clientPhone = document.getElementById('ped-telefono').value.trim();
+            const clientDir = document.getElementById('ped-direccion').value.trim();
+            
+            const chosenAliado = usuarioActual.rol === 'aliado' ? usuarioActual.aliadoComercial : document.getElementById('ped-aliado').value;
+            const chosenMoto = usuarioActual.rol === 'aliado' ? "Pendiente por Asignar" : document.getElementById('ped-motorizado').value;
+            
+            const costValue = parseFloat(document.getElementById('ped-costo').value) || 0;
+            const detailText = document.getElementById('ped-detalles').value || "Despacho";
+
+            const existeCliente = directorioClientes.some(c => c.telefono === clientPhone);
+            if (!existeCliente && clientPhone && clientName) {
+                db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
+            }
+
+            if (editPedidoId !== null) {
+                db.collection('pedidos').doc(editPedidoId).update({
+                    cliente: clientName, telefono: clientPhone, direccion: clientDir,
+                    aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
+                }).then(() => {
+                    editPedidoId = null;
+                    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+                    document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
+                    document.getElementById('form-pedido').reset();
+                    Swal.fire("Modificado", "Pedido actualizado con éxito.", "success");
+                    switchTab('gestion');
+                });
+            } else {
+                const numericId = Date.now();
+                const nowVE = new Date();
+                const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+                const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(nowVE);
+                const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'year').value}`;
+
+                const nuevoPedido = {
+                    id: numericId,
+                    fecha: fechaFormatSalida.split('-').reverse().join('/'),
+                    hora: getVenezuelaTime(),
+                    cliente: clientName, telefono: clientPhone, direccion: clientDir,
+                    aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
+                };
+
+                db.collection('pedidos').add(nuevoPedido).then(() => {
+                    const dataAliado = aliados.find(a => a.nombre === nuevoPedido.aliado) || { telefono: "" };
+                    const dataMoto = motorizados.find(m => m.nombre === nuevoPedido.motorizado) || { telefono: "" };
+                    
+                    const msgCliente = encodeURIComponent(
+                        `*SUN DELIVERY VALENCIA* 🚀\n\n` +
+                        `¡Hola *${nuevoPedido.cliente}*! Tu servicio de entrega ha sido procesado de manera exitosa.\n\n` +
+                        `🏪 *Comercio:* ${nuevoPedido.aliado}\n` +
+                        `🛵 *Repartidor:* ${nuevoPedido.motorizado}\n` +
+                        `📍 *Dirección de Entrega:* ${nuevoPedido.direccion}\n` +
+                        `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
+                        `💵 *Costo Delivery:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                        `✨ ¡Muchas gracias por tu preferencia!`
+                    );
+
+                    const msgAliado = encodeURIComponent(
+                        `*NOTIFICACIÓN DE DESPACHO* 🏪\n\n` +
+                        `Estimado aliado comercial de *${nuevoPedido.aliado}*, le informamos que hemos asignado una unidad para su orden.\n\n` +
+                        `🛵 *Motorizado Asignado:* ${nuevoPedido.motorizado}\n` +
+                        `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
+                        `📍 *Destino:* ${nuevoPedido.direccion}\n` +
+                        `📦 *Detalle del Paquete:* ${nuevoPedido.detalles}\n` +
+                        `💵 *Monto de Ruta:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                        `🤝 ¡Trabajando juntos para ofrecer el mejor servicio!`
+                    );
+
+                    const msgMotorizado = encodeURIComponent(
+                        `*NUEVA ASIGNACIÓN DE RUTA* 🏍️\n\n` +
+                        `Hola *${nuevoPedido.motorizado}*, tienes un nuevo despacho activo.\n\n` +
+                        `🏪 *Retira en Aliado:* ${nuevoPedido.aliado}\n` +
+                        `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
+                        `📞 *Tlf Cliente:* +58 ${nuevoPedido.telefono}\n` +
+                        `📍 *Dirección:* ${nuevoPedido.direccion}\n` +
+                        `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
+                        `💰 *Cobrar al Cliente:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                        `⚠️ *Importante:* Confirmar al llegar al destino.`
+                    );
+
+                    document.getElementById('wa-btn-cliente').href = `https://api.whatsapp.com/send?phone=${nuevoPedido.telefono}&text=${msgCliente}`;
+                    document.getElementById('wa-btn-aliado').href = `https://api.whatsapp.com/send?phone=${dataAliado.telefono}&text=${msgAliado}`;
+                    document.getElementById('wa-btn-motorizado').href = `https://api.whatsapp.com/send?phone=${dataMoto.telefono}&text=${msgMotorizado}`;
+
+                    document.getElementById('form-pedido').reset();
+                    document.getElementById('whatsapp-modal').classList.add('active');
+                });
+            }
+        }
+
+        function editPedido(event, fId) {
+            if (event) event.stopPropagation();
+            const p = pedidos.find(item => item.firestoreId === fId);
+            if (!p) return;
+            
+            editPedidoId = fId;
+            document.getElementById('form-pedido-title').innerHTML = `✏️ Editar Pedido Comercial`;
+            document.getElementById('btn-submit-pedido').innerHTML = `Actualizar Pedido`;
+
+            document.getElementById('ped-nombre').value = p.cliente;
+            document.getElementById('ped-telefono').value = p.telefono;
+            document.getElementById('ped-direccion').value = p.direccion;
+            if(usuarioActual.rol === 'admin') document.getElementById('ped-aliado').value = p.aliado;
+            document.getElementById('ped-motorizado').value = p.motorizado;
+            document.getElementById('ped-costo').value = p.costo;
+            document.getElementById('ped-detalles').value = p.detalles;
+            switchTab('agregar');
+        }
+
+        function deletePedido(event, fId) {
+            if (event) event.stopPropagation();
+            Swal.fire({
+                title: '¿Eliminar Pedido?',
+                text: "Esta acción borrará el registro permanente en la nube.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6600',
+                confirmButtonText: 'Sí, borrar de la nube'
+            }).then((res) => {
+                if(res.isConfirmed) {
+                    db.collection('pedidos').doc(fId).delete().then(() => {
+                        Swal.fire("Borrado", "El despacho fue eliminado.", "success");
+                    });
+                }
+            });
+        }
+
+        function closeWhatsAppModal() {
+            document.getElementById('whatsapp-modal').classList.remove('active');
+            switchTab('gestion');
+        }
+
+        function renderMotorizados() {
+            const tbody = document.getElementById('tabla-motorizados-body');
+            tbody.innerHTML = '';
+            if(motorizados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay motorizados registrados.</td></tr>`;
+                return;
+            }
+            motorizados.forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-bold">${m.nombre}</td>
+                        <td>${m.telefono}</td>
+                        <td><span class="badge-blue">${m.placa}</span></td>
+                        <td>${m.direccion}</td>
+                        <td>
+                            <div class="action-cell">
+                                <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')">✏️</button>
+                                <button type="button" class="action-btn" onclick="deleteMotorizado('${m.firestoreId}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        UX_REPARTIDOR = null;
+        function saveMotorizado(e) {
+            e.preventDefault();
+            const nom = document.getElementById('moto-nombre').value;
+            const tlf = document.getElementById('moto-telefono').value;
+            const plc = document.getElementById('moto-placa').value;
+            const dir = document.getElementById('moto-direccion').value;
+
+            if (editMotoId !== null) {
+                db.collection('motorizados').doc(editMotoId).update({ nombre: nom, telefono: tlf, placa: plc, direccion: dir })
+                .then(() => {
+                    editMotoId = null;
+                    document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores`;
+                    document.getElementById('btn-submit-moto').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Repartidor`;
+                    document.getElementById('form-motorizado').reset();
+                    Swal.fire("Listo", "Motorizado actualizado.", "success");
+                });
+            } else {
+                db.collection('motorizados').add({ id: Date.now(), nombre: nom, telefono: tlf, placa: plc, direccion: dir })
+                .then(() => {
+                    document.getElementById('form-motorizado').reset();
+                    Swal.fire("Registrado", "Nuevo repartidor en línea.", "success");
+                });
+            }
+        }
+
+        function editMotorizado(fId) {
+            const m = motorizados.find(item => item.firestoreId === fId);
+            if (!m) return;
+            editMotoId = fId;
+            document.getElementById('form-moto-title').innerHTML = `✏️ Editar Motorizado`;
+            document.getElementById('btn-submit-moto').innerHTML = `Actualizar`;
+            document.getElementById('moto-nombre').value = m.nombre;
+            document.getElementById('moto-telefono').value = m.telefono;
+            document.getElementById('moto-placa').value = m.placa;
+            document.getElementById('moto-direccion').value = m.direccion;
+        }
+
+        function deleteMotorizado(fId) {
+            Swal.fire({ title: '¿Dar de baja repartidor?', icon: 'warning', showCancelButton: true }).then(r => {
+                if(r.isConfirmed) db.collection('motorizados').doc(fId).delete();
+            });
+        }
+
+        function renderAliados() {
+            const tbody = document.getElementById('tabla-aliados-body');
+            tbody.innerHTML = '';
+            if(aliados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">No hay aliados comerciales registrados.</td></tr>`;
+                return;
+            }
+            aliados.forEach(a => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-bold">${a.nombre}</td>
+                        <td>${a.telefono}</td>
+                        <td>${a.direccion}</td>
+                        <td>
+                            <div class="action-cell">
+                                <button type="button" class="action-btn" onclick="editAliado('${a.firestoreId}')">✏️</button>
+                                <button type="button" class="action-btn" onclick="deleteAliado('${a.firestoreId}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function saveAliado(e) {
+            e.preventDefault();
+            const nom = document.getElementById('aliado-nombre').value.trim();
+            const pinVal = document.getElementById('aliado-pin').value.trim();
+            const tlf = document.getElementById('aliado-telefono').value;
+            const dir = document.getElementById('aliado-direccion').value;
+
+            if (editAliadoId !== null) {
+                db.collection('aliados').doc(editAliadoId).update({ nombre: nom, pin: pinVal, telefono: tlf, direccion: dir })
+                .then(() => {
+                    editAliadoId = null;
+                    document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado`;
+                    document.getElementById('btn-submit-aliado').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Comercio`;
+                    document.getElementById('form-aliado').reset();
+                    Swal.fire("Completado", "Aliado comercial modificado.", "success");
+                });
+            } else {
+                db.collection('aliados').add({ id: Date.now(), nombre: nom, pin: pinVal, telefono: tlf, direccion: dir })
+                .then(() => {
+                    document.getElementById('form-aliado').reset();
+                    Swal.fire("Perfecto", "Comercio aliado agregado con su respectiva clave.", "success");
+                });
+            }
+        }
+
+        function editAliado(fId) {
+            const a = aliados.find(item => item.firestoreId === fId);
+            if (!a) return;
+            editAliadoId = fId;
+            document.getElementById('form-aliado-title').innerHTML = `✏️ Editar Aliado Comercial`;
+            document.getElementById('btn-submit-aliado').innerHTML = `Actualizar`;
+            document.getElementById('aliado-nombre').value = a.nombre;
+            document.getElementById('aliado-pin').value = a.pin || "";
+            document.getElementById('aliado-telefono').value = a.telefono;
+            document.getElementById('aliado-direccion').value = a.direccion;
+        }
+
+        function deleteAliado(fId) {
+            Swal.fire({ title: '¿Remover Aliado de la red?', icon: 'warning', showCancelButton: true }).then(r => {
+                if(r.isConfirmed) db.collection('aliados').doc(fId).delete();
+            });
+        }
+
+        function updateSelectDropdowns() {
+            const pAliado = document.getElementById('ped-aliado');
+            const pMoto = document.getElementById('ped-motorizado');
+            const iAliado = document.getElementById('invoice-aliado');
+            const bAliado = document.getElementById('filtro-aliado-busqueda');
+            const bMotorizado = document.getElementById('filtro-motorizado-busqueda');
+            const iMotorizadoPayroll = document.getElementById('invoice-motorizado-payroll');
+
+            const currentPAliado = pAliado.value;
+            const currentPMoto = pMoto.value;
+            const currentIAliado = iAliado.value;
+            const currentBAliado = bAliado.value;
+            const currentBMotorizado = bMotorizado ? bMotorizado.value : "";
+            const currentIMotoPayroll = iMotorizadoPayroll.value;
+
+            pAliado.innerHTML = '<option value="">Seleccione un aliado...</option>';
+            pMoto.innerHTML = '<option value="">Seleccione un motorizado...</option>';
+            iAliado.innerHTML = '<option value="">Seleccione Aliado...</option><option value="TODOS_LOS_ALIADOS">-- SELECCIONAR TODOS LOS ALIADOS --</option>';
+            if(bAliado) bAliado.innerHTML = '<option value="">Todos los Aliados</option>';
+            if(bMotorizado) bMotorizado.innerHTML = '<option value="">Todos los Motorizados</option>';
+            iMotorizadoPayroll.innerHTML = '<option value="">Seleccione Motorizado...</option>';
+
+            aliados.forEach(a => {
+                pAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+                iAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+                if(bAliado) bAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+            });
+            motorizados.forEach(m => {
+                pMoto.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
+                if(bMotorizado) bMotorizado.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
+                iMotorizadoPayroll.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
+            });
+
+            if(currentPAliado) pAliado.value = currentPAliado;
+            if(currentPMoto) pMoto.value = currentPMoto;
+            if(currentIAliado) iAliado.value = currentIAliado;
+            if(currentBAliado) bAliado.value = currentBAliado;
+            if(bMotorizado && currentBMotorizado) bMotorizado.value = currentBMotorizado;
+            if(currentIMotoPayroll) iMotorizadoPayroll.value = currentIMotoPayroll;
+        }
+
+        function generateAliadoInvoice() {
+            const nombreAliado = document.getElementById('invoice-aliado').value;
+            const fechaDesde = document.getElementById('invoice-fecha-desde').value;
+            const fechaHasta = document.getElementById('invoice-fecha-hasta').value;
+            
+            if (!nombreAliado) { Swal.fire("Campo requerido", "Selecciona un aliado comercial.", "info"); return; }
+            if (!fechaDesde || !fechaHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
+
+            const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
+
+            const pedidosFiltrados = pedidos.filter(p => {
+                const pedidoFechaISO = parseDateVEToISO(p.fecha);
+                if (nombreAliado !== "TODOS_LOS_ALIADOS" && p.aliado !== nombreAliado) return false;
+                if (pedidoFechaISO < fechaDesde || pedidoFechaISO > fechaHasta) return false;
+                return true;
+            });
+
+            if (pedidosFiltrados.length === 0) {
+                Swal.fire("Sin datos", "No existen órdenes registradas en esos días para la selección.", "info");
+                return;
+            }
+
+            document.getElementById('fact-titulo-documento').innerText = "FACTURA CONSOLIDADA DE COBRO";
+
+            if(nombreAliado === "TODOS_LOS_ALIADOS") {
+                document.getElementById('fact-bloque-entidad').innerHTML = `<b>Aliado Comercial:</b> <span>CONSOLIDADO GLOBAL</span>`;
+            } else {
+                document.getElementById('fact-bloque-entidad').innerHTML = `<b>Aliado Comercial:</b> <span>${nombreAliado}</span>`;
+            }
+
+            const fDesdeFormateada = fechaDesde.split('-').reverse().join('/');
+            const fHastaFormateada = fechaHasta.split('-').reverse().join('/');
+            document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
+            document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+
+            const tbodyFactura = document.getElementById('fact-detalles-ordenes');
+            tbodyFactura.innerHTML = '';
+            
+            let acumuladoUSD = 0;
+            pedidosFiltrados.forEach(p => {
+                acumuladoUSD += p.costo;
+                const tagAliado = nombreAliado === "TODOS_LOS_ALIADOS" ? `[${p.aliado}] ` : '';
+                
+                tbodyFactura.innerHTML += `
+                    <tr style="border-bottom: 1px dashed #dddddd;">
+                        <td style="padding: 6px 0;">${tagAliado}${p.cliente} <span style="font-size:0.65rem; color:#666;">(${p.fecha})</span><br><span style="font-size:0.65rem; color:#666;">Moto: ${p.motorizado}</span></td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">$${p.costo.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('fact-total-usd').innerText = acumuladoUSD.toFixed(2);
+            document.getElementById('fact-total-bs').innerText = FormatearBs(acumuladoUSD * tasa);
+            document.getElementById('footer-pago-movil').innerHTML = "<b>Banco:</b> Banesco / Venezuela<br><b>Teléfono:</b> 04244529892<br><b>RIF:</b> 18410871";
+
+            renderInvoiceToImage(nombreAliado === "TODOS_LOS_ALIADOS" ? "Consolidado_General" : nombreAliado);
+        }
+
+        function FormatearBs(monto) {
+            return monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function AntiXSS(str) {
+            return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function openReceiptModal(fId) {
+            selectedPedido = pedidos.find(p => p.firestoreId === fId);
+            if(!selectedPedido) return;
+
+            document.getElementById('tkt-cliente').innerText = selectedPedido.cliente;
+            document.getElementById('tkt-tlf').innerText = selectedPedido.telefono;
+            document.getElementById('tkt-dir').innerText = selectedPedido.direccion;
+            document.getElementById('tkt-aliado').innerText = selectedPedido.aliado;
+            document.getElementById('tkt-moto').innerText = selectedPedido.motorizado || 'No asignado';
+            document.getElementById('modal-monto').value = selectedPedido.costo.toFixed(2);
+
+            updateTicketCalculations();
+            document.getElementById('receipt-modal').classList.add('active');
+        }
+
+        function updateTicketCalculations() {
+            const tasa = parseFloat(document.getElementById('modal-tasa').value) || 0;
+            const usd = parseFloat(document.getElementById('modal-monto').value) || 0;
+            document.getElementById('tkt-tasa-text').innerText = tasa.toFixed(2);
+            document.getElementById('tkt-usd-text').innerText = usd.toFixed(2);
+            document.getElementById('tkt-bs-text').innerText = FormatearBs(tasa * usd);
+        }
+
+        function closeReceiptModal() { document.getElementById('receipt-modal').classList.remove('active'); }
+
+        function triggerDownloadJPG() {
+            const area = document.getElementById('print-ticket-area');
+            html2canvas(area, { scale: 3, backgroundColor: '#ffffff' }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Recibo_${selectedPedido.cliente.replace(/\s+/g, '_')}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 1.0);
+                link.click();
+            });
+        }
+
+        function getVenezuelaDate() {
+            const now = new Date();
+            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
+            return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+        }
+
+        function parseDateVEToISO(dateStr) {
+            if(!dateStr) return "";
+            if(dateStr.includes("-")) return dateStr; 
+            const parts = dateStr.split("/");
+            if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return dateStr;
+        }
+
+        function getVenezuelaTime() {
+            const now = new Date();
+            return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
+        function closeWhatsAppModal() {
+            document.getElementById('whatsapp-modal').classList.remove('active');
+            switchTab('gestion'); // Esto te regresará automáticamente a la vista de gestión
+        }
+    </script>
+</body>
+</html>
