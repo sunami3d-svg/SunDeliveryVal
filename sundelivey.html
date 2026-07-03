@@ -281,12 +281,6 @@
             box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.12);
             background-color: #f8fafc;
         }
-        .form-group input[readonly] {
-            background-color: #f1f5f9;
-            color: #475569;
-            cursor: not-allowed;
-            border-color: #e2e8f0;
-        }
         .form-row-2 {
             display: flex;
             gap: 14px;
@@ -475,13 +469,34 @@
         }
         .action-btn:hover { background-color: #e2e8f0; transform: scale(1.05); }
 
+        /* SECCIONES SECUNDARIAS COMPACTAS */
+        .income-report-grid { display: none; }
+        .expense-list {
+            margin-top: 18px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 4px;
+            border-bottom: 1px dashed #e2e8f0;
+            color: #334155;
+            align-items: center;
+        }
+        .expense-item:last-child { border-bottom: none; }
+
         /* OVERLAYS Y MODALES MODERNIZADOS */
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px); /* Efecto cristalino moderno */
             justify-content: center;
             align-items: center;
             padding: 15px;
@@ -528,6 +543,42 @@
         }
         .btn-wa-target:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
         .btn-wa-target i { color: #25d366; font-size: 1.4rem; }
+
+        .receipt-config-box {
+            background: #f8fafc; padding: 14px; border-radius: 10px; margin-bottom: 18px; border: 1px solid #e2e8f0;
+        }
+        .config-inputs { display: flex; gap: 10px; }
+        .config-inputs input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; text-align: center; }
+        
+        #print-ticket-area {
+            background-color: #ffffff; color: #000000; padding: 22px; border: 1px solid #cbd5e1; font-family: 'Courier New', Courier, monospace; border-radius: 4px;
+        }
+        .tkt-header { text-align: center; margin-bottom: 12px; }
+        .tkt-header .title { font-size: 1.35rem; font-weight: bold; font-family: 'Courier New', sans-serif; }
+        .tkt-header p { font-size: 0.78rem; margin-top: 2px; }
+        .tkt-line { border-top: 2px dashed #000000; margin: 12px 0; }
+        .tkt-body { font-size: 0.82rem; line-height: 1.5; }
+        .tkt-field { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .tkt-field .label { font-weight: bold; }
+        .tkt-totals { margin-top: 12px; padding-top: 6px; }
+        .tkt-total-usd { font-weight: bold; font-size: 1.05rem; }
+        .tkt-total-bs { font-weight: bold; font-size: 0.95rem; margin-top: 2px; }
+
+        .modal-footer-btns { display: flex; gap: 12px; margin-top: 18px; }
+        .btn-modal-action {
+            flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.88rem;
+            display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease;
+        }
+        .btn-modal-close { background-color: #e2e8f0; color: #475569; }
+        .btn-modal-close:hover { background-color: #cbd5e1; }
+        .btn-modal-download { background-color: #25d366; color: #ffffff; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2); }
+        .btn-modal-download:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(37, 211, 102, 0.3); }
+
+        /* DISEÑO DE FACTURA INTERNA (Alineación perfecta e imagen de marca visible) */
+        #recibo-diseno-factura {
+            display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 360px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
+        }
+        #seccion-vista-previa img { box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -536,7 +587,7 @@
 
     <div id="login-view">
         <div class="login-card">
-            <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-login" onerror="this.src='https://via.placeholder.com/120?text=SUN'">
+            <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-login">
             <div class="login-title">SUNDELIVERY</div>
             <div class="login-subtitle">Valencia</div>
             
@@ -547,7 +598,7 @@
                 <p><i class="fa-brands fa-facebook" style="color:#ff6600"></i> <strong>Facebook:</strong> SunDeliveryval</p>
             </div>
 
-            <input type="text" id="username-input" class="login-input" placeholder="Usuario (Admin o Aliado)" style="margin-bottom:10px;">
+            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario / Aliado" style="margin-bottom:10px;">
             <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña">
             <button class="btn-login" onclick="validateLogin()">Entrar al Sistema</button>
         </div>
@@ -556,76 +607,20 @@
     <div id="app-container">
         <header class="main-header">
             <div class="header-brand">
-                <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-header" onerror="this.src='https://via.placeholder.com/36?text=S'">
+                <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-header">
                 SUN<span>DELIVERY</span> Val <span id="badge-rol" style="font-size:0.75rem; margin-left:8px; padding:2px 8px; background:#ff6600; color:#fff; border-radius:8px;">Admin</span>
             </div>
-            
-            <!-- MENÚ DE ADMINISTRADOR -->
-            <nav class="nav-tabs" id="menu-navegacion-admin">
+            <nav class="nav-tabs" id="menu-navegacion">
                 <div id="tab-agregar" class="tab-item active" onclick="switchTab('agregar')"><i class="fa-solid fa-circle-plus"></i>Pedido</div>
                 <div id="tab-gestion" class="tab-item" onclick="switchTab('gestion')"><i class="fa-solid fa-folder-open"></i>Gestión</div>
-                <div id="tab-clientes" class="tab-item" onclick="switchTab('clientes')"><i class="fa-solid fa-users"></i>Clientes</div>
-                <div id="tab-motorizados" class="tab-item" onclick="switchTab('motorizados')"><i class="fa-solid fa-motorcycle"></i>Rutas</div>
-                <div id="tab-aliados" class="tab-item" onclick="switchTab('aliados')"><i class="fa-solid fa-handshake"></i>Aliados</div>
-            </nav>
-
-            <!-- MENÚ DE ALIADO (Solo Portal) -->
-            <nav class="nav-tabs" id="menu-navegacion-aliado" style="display:none;">
-                <div id="tab-portal-aliado" class="tab-item active"><i class="fa-solid fa-store"></i>Portal de Pedidos</div>
+                <div id="tab-clientes" class="tab-item v-admin" onclick="switchTab('clientes')"><i class="fa-solid fa-users"></i>Clientes</div>
+                <div id="tab-motorizados" class="tab-item v-admin" onclick="switchTab('motorizados')"><i class="fa-solid fa-motorcycle"></i>Rutas</div>
+                <div id="tab-aliados" class="tab-item v-admin" onclick="switchTab('aliados')"><i class="fa-solid fa-handshake"></i>Aliados</div>
             </nav>
         </header>
 
-        <!-- PORTAL EXCLUSIVO PARA ALIADOS -->
-        <div id="view-portal-aliado" class="view-section">
-            <div class="card-panel">
-                <div class="panel-title"><i class="fa-solid fa-paper-plane" style="color:#ff6600"></i> Generar Nuevo Pedido</div>
-                <form id="form-aliado-portal" onsubmit="generarPedidoDesdeAliado(event)" autocomplete="off">
-                    <div class="form-group">
-                        <label>Teléfono Cliente</label>
-                        <input type="text" id="aliado-portal-telefono" placeholder="Ej. 0414..." required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nombre Cliente</label>
-                        <input type="text" id="aliado-portal-nombre" placeholder="Nombre completo" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Dirección Cliente</label>
-                        <input type="text" id="aliado-portal-direccion" placeholder="Dirección detallada" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Tu Comercio (Aliado)</label>
-                        <input type="text" id="aliado-portal-comercio" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Detalles del Pedido</label>
-                        <textarea id="aliado-portal-detalles" rows="3" placeholder="Ej. 2 Hamburguesas, 1 Refresco..." required></textarea>
-                    </div>
-                    <button type="submit" class="btn-submit"><i class="fa-solid fa-rocket"></i> Generar y Enviar a SunDelivery</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- VISTAS DE ADMINISTRADOR -->
         <div id="view-agregar" class="view-section active">
-            <!-- PANEL DE PEDIDOS POR CONFIRMAR -->
-            <div class="card-panel" id="panel-pedidos-pendientes" style="display:none; border: 2px solid #ef4444; background-color: #fef2f2;">
-                <div class="panel-title" style="border-left-color: #ef4444; color: #ef4444;"><i class="fa-solid fa-bell-concierge"></i> Pedidos de Aliados por Confirmar</div>
-                <div class="table-responsive" style="margin-bottom:0; box-shadow:none;">
-                    <table class="table-clickable">
-                        <thead>
-                            <tr>
-                                <th>Hora</th>
-                                <th>Comercio (Aliado)</th>
-                                <th>Cliente</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-pedidos-pendientes-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="card-panel" style="border-left: 5px solid #10b981;">
+            <div class="card-panel v-admin" style="border-left: 5px solid #10b981;">
                 <div class="panel-title" style="border:none; padding:0; margin-bottom:12px;"><i class="fa-solid fa-sliders" style="color:#10b981"></i> Ajustes Operativos</div>
                 <div class="form-group" style="margin:0;">
                     <label>Comisión Motorizados (%)</label>
@@ -636,7 +631,7 @@
                 </div>
             </div>
 
-            <div class="card-panel" id="panel-form-principal">
+            <div class="card-panel">
                 <div class="panel-title" id="form-pedido-title"><i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido</div>
                 <form id="form-pedido" onsubmit="processNewPedido(event)" autocomplete="off">
                     <div class="form-group">
@@ -660,9 +655,9 @@
                                 <option value="">Seleccione un aliado...</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group v-admin">
                             <label>Motorizado / Delivery</label>
-                            <select id="ped-motorizado" required>
+                            <select id="ped-motorizado">
                                 <option value="">Seleccione un motorizado...</option>
                             </select>
                         </div>
@@ -675,10 +670,7 @@
                         <label>Características / Detalles del Pedido</label>
                         <textarea id="ped-detalles" rows="3" placeholder="Especificaciones del paquete, productos, etc."></textarea>
                     </div>
-                    <!-- Campo oculto para saber si estamos confirmando uno pendiente -->
-                    <input type="hidden" id="ped-estatus-actual" value="confirmado">
                     <button type="submit" class="btn-submit" id="btn-submit-pedido"><i class="fa-solid fa-floppy-disk"></i> Guardar Pedido</button>
-                    <button type="button" class="btn-submit btn-red" id="btn-cancelar-edicion" style="display:none; margin-top:10px;" onclick="cancelarEdicion()">Cancelar / Limpiar</button>
                 </form>
             </div>
         </div>
@@ -687,13 +679,32 @@
             <div class="dashboard-grid">
                 <div class="dash-card"><div class="title">Órdenes</div><div class="value" id="dash-cant-pedidos">0</div></div>
                 <div class="dash-card active-val"><div class="title">Ingreso USD</div><div class="value" id="dash-ingreso-usd">$0.00</div></div>
-                <div class="dash-card"><div class="title">Gastos</div><div class="value" id="dash-gasto-usd" style="color:#ef4444;">$0.00</div></div>
-                <div class="dash-card neto-pos" id="dash-neto-box"><div class="title">Balance</div><div class="value" id="dash-balance-neto">$0.00</div></div>
+                <div class="dash-card v-admin"><div class="title">Gastos</div><div class="value" id="dash-gasto-usd" style="color:#ef4444;">$0.00</div></div>
+                <div class="dash-card neto-pos v-admin" id="dash-neto-box"><div class="title">Balance</div><div class="value" id="dash-balance-neto">$0.00</div></div>
             </div>
-            
-            <div class="table-section-title"><i class="fa-solid fa-list-check" style="color:#0f172a"></i> Historial de Pedidos Confirmados</div>
+
+            <div class="card-panel">
+                <div class="panel-title"><i class="fa-solid fa-filter" style="color:#ff6600"></i> Búsqueda Avanzada y Control</div>
+                <div class="form-row-2">
+                    <div class="form-group"><label>Desde Fecha</label><input type="date" id="filtro-fecha-desde" onchange="renderPedidos()"></div>
+                    <div class="form-group"><label>Hasta Fecha</label><input type="date" id="filtro-fecha-hasta" onchange="renderPedidos()"></div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group" id="filtro-aliado-box">
+                        <label>Filtrar por Aliado</label>
+                        <select id="filtro-aliado-busqueda" onchange="renderPedidos()"><option value="">Todos los Aliados</option></select>
+                    </div>
+                    <div class="form-group v-admin">
+                        <label>Filtrar por Motorizado</label>
+                        <select id="filtro-motorizado-busqueda" onchange="renderPedidos()"><option value="">Todos los Motorizados</option></select>
+                    </div>
+                </div>
+                <button type="button" class="btn-submit btn-dark-blue" style="margin-top: 5px; padding: 10px; font-size: 0.85rem;" onclick="limpiarFiltrosBusqueda()"><i class="fa-solid fa-trash-can"></i> Limpiar Filtros de Búsqueda</button>
+            </div>
+
+            <div class="table-section-title"><i class="fa-solid fa-list-check" style="color:#0f172a"></i> Listado de Pedidos</div>
             <div class="table-responsive">
-                <table>
+                <table class="table-clickable">
                     <thead>
                         <tr>
                             <th>Fecha/Hora</th>
@@ -702,44 +713,152 @@
                             <th>Aliado</th>
                             <th>Motorizado</th>
                             <th>Costo ($)</th>
-                            <th>Acciones</th>
+                            <th>Detalles</th>
+                            <th class="v-admin">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-pedidos-body"></tbody>
                 </table>
             </div>
+
+            <div class="card-panel v-admin">
+                <div class="panel-title"><i class="fa-solid fa-file-invoice-dollar" style="color:#ff6600"></i> Generar Cuentas y Recibos</div>
+                
+                <div class="form-group">
+                    <label>Tipo de Recibo</label>
+                    <select id="invoice-tipo-entidad" onchange="toggleInvoiceFields()">
+                        <option value="ALIADO">Aliado Comercial</option>
+                        <option value="MOTORIZADO">Nómina / Recibo de Motorizado</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="invoice-aliado-group">
+                    <label>Seleccionar Aliado Comercial</label>
+                    <select id="invoice-aliado">
+                        <option value="">Seleccione Aliado...</option>
+                        <option value="TODOS_LOS_ALIADOS">-- SELECCIONAR TODOS LOS ALIADOS --</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="invoice-motorizado-group" style="display:none;">
+                    <label>Seleccionar Motorizado / Repartidor</label>
+                    <select id="invoice-motorizado-payroll">
+                        <option value="">Seleccione Motorizado...</option>
+                    </select>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group"><label>Desde Fecha</label><input type="date" id="invoice-fecha-desde"></div>
+                    <div class="form-group"><label>Hasta Fecha</label><input type="date" id="invoice-fecha-hasta"></div>
+                </div>
+                <div class="form-group">
+                    <label>Tasa del Día (Bs)</label>
+                    <input type="number" id="invoice-tasa" value="45.50" step="0.01">
+                </div>
+                <button class="btn-submit btn-dark-blue" onclick="processInvoiceGeneration()"><i class="fa-solid fa-gears"></i> Generar Recibo de Liquidación</button>
+            </div>
+
+            <div id="seccion-vista-previa" class="card-panel" style="display: none; text-align: center;">
+                <div class="panel-title" style="border-left-color: #25d366;"><i class="fa-solid fa-image" style="color:#25d366"></i> Vista Previa Digital</div>
+                <img id="imagen-vista-previa" src="" alt="Factura de Cobro" style="max-width: 100%; width: 340px; border: 1px solid #cbd5e1; margin-bottom: 15px;">
+                <a id="boton-descargar-jpg" href="#" class="btn-submit" style="background-color: #25d366; text-decoration: none; padding: 14px;">
+                    <i class="fa-solid fa-circle-down"></i> Descargar Factura para WhatsApp
+                </a>
+            </div>
+
+            <div id="recibo-diseno-factura">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1;">
+                    <img src="3871.jpg" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.16; filter: contrast(108%);">
+                </div>
+                <div style="position: relative; z-index: 2;">
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 1.25rem; font-weight: bold;">SunDelivery Valencia C, A</h3>
+                        <p style="font-size: 0.75rem;">Dirección: Urb. Parral, CC. Piazza</p>
+                        <p style="font-size: 0.75rem;">INSTAGRAM: @SunDeliveryVal</p>
+                        <h4 id="fact-titulo-documento" style="font-size: 0.85rem; margin-top: 12px; font-weight: bold; border-top: 2px dashed #000; border-bottom: 2px dashed #000; padding: 5px 0;">FACTURA CONSOLIDADA DE COBRO</h4>
+                    </div>
+                    <div style="font-size: 0.78rem; line-height: 1.5; margin-bottom: 15px;">
+                        <div id="fact-bloque-entidad"><b>Aliado Comercial:</b> <span id="fact-nom-aliado">-</span></div>
+                        <div><b>Período Relación:</b> <span id="fact-fecha-relacion">-</span></div>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: left; margin-bottom: 12px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid #000;">
+                                <th style="padding: 6px 0; background:none; color:#000;">Detalle / Orden</th>
+                                <th style="padding: 6px 0; text-align: right; background:none; color:#000;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fact-detalles-ordenes"></tbody>
+                    </table>
+                    <div style="border-top: 2px dashed #000; padding-top: 8px; font-size: 0.82rem;">
+                        <div style="display: flex; justify-content: space-between;"><span>Tasa del Día Ref:</span> <span><span id="fact-tasa">-</span> Bs/$</span></div>
+                        <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: bold; margin-top: 6px; border-top: 1px solid #000; padding-top: 4px;"><span>TOTAL USD:</span> <span>$<span id="fact-total-usd">-</span></span></div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: bold;"><span>TOTAL BS:</span> <span><span id="fact-total-bs">-</span> Bs</span></div>
+                    </div>
+                    <div style="margin-top: 15px; border: 1px dashed #000; padding: 10px; font-size: 0.75rem; background-color: rgba(250, 250, 250, 0.88);">
+                        <div style="font-weight: bold; text-align: center; margin-bottom: 4px;">📌 Información de Cierre:</div>
+                        <div id="footer-pago-movil"><b>Banco:</b> Banesco / Venezuela<br><b>Teléfono:</b> 04244529892<br><b>RIF:</b> 18410871</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-panel v-admin">
+                <div class="panel-title"><i class="fa-solid fa-receipt" style="color:#ff6600"></i> Control de Gastos Administrativos</div>
+                <form id="form-gastos" onsubmit="registerGasto(event)">
+                    <div class="form-row-2">
+                        <div class="form-group" style="flex: 2;"><input type="text" id="gasto-detalle" placeholder="Detalle del Gasto" required></div>
+                        <div class="form-group" style="flex: 1;"><input type="number" step="0.01" id="gasto-monto" placeholder="Monto ($)" required></div>
+                    </div>
+                    <button type="submit" class="btn-submit btn-red"><i class="fa-solid fa-hand-holding-dollar"></i> Registrar Gasto</button>
+                </form>
+                <div class="expense-list" id="expense-container">Sin gastos.</div>
+            </div>
         </div>
 
         <div id="view-clientes" class="view-section">
-            <!-- (Contenido intacto de tu código anterior) -->
-            <div class="table-section-title">Cartera Comercial Activa (Resumen)</div>
-            <p>Módulo de clientes cargado en memoria.</p>
+            <div class="card-panel">
+                <div class="panel-title" id="form-cliente-title"><i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes</div>
+                <form id="form-directorio-cliente" onsubmit="saveDirectorioCliente(event)">
+                    <div class="form-group"><label>Teléfono Celular</label><input type="text" id="cli-telefono" placeholder="Ej. 04241112233" required></div>
+                    <div class="form-group"><label>Nombre y Apellido</label><input type="text" id="cli-nombre" placeholder="Nombre completo del cliente" required></div>
+                    <div class="form-group"><label>Dirección Frecuente</label><input type="text" id="cli-direccion" placeholder="Urb, Sector, Calle, Edificio/Casa" required></div>
+                    <button type="submit" class="btn-submit" id="btn-submit-cliente-dir"><i class="fa-solid fa-user-plus"></i> Guardar en Cartera</button>
+                </form>
+            </div>
+            <div class="table-section-title"><i class="fa-solid fa-users-viewfinder" style="color:#0f172a"></i> Cartera Comercial Activa</div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Cliente</th><th>Teléfono</th><th>Dirección de Envío habitual</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-clientes-directorio-body"></tbody>
+                </table>
+            </div>
         </div>
 
         <div id="view-motorizados" class="view-section">
-             <!-- (Contenido intacto de tu código anterior) -->
-             <div class="table-section-title">Rutas (Resumen)</div>
-             <p>Módulo de motorizados cargado en memoria.</p>
+            <div class="card-panel">
+                <div class="panel-title" id="form-moto-title"><i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores</div>
+                <form id="form-motorizado" onsubmit="saveMotorizado(event)">
+                    <div class="form-group"><label>Nombre</label><input type="text" id="moto-nombre" required></div>
+                    <div class="form-group"><label>Teléfono</label><input type="text" id="moto-telefono" required></div>
+                    <div class="form-group"><label>Placa / Moto</label><input type="text" id="moto-placa" required></div>
+                    <div class="form-group"><label>Dirección</label><input type="text" id="moto-direccion" required></div>
+                    <button type="submit" class="btn-submit" id="btn-submit-moto"><i class="fa-solid fa-circle-check"></i> Guardar Repartidor</button>
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Nombre</th><th>Teléfono</th><th>Moto</th><th>Dirección</th><th>Acciones</th></tr></thead>
+                    <tbody id="tabla-motorizados-body"></tbody>
+                </table>
+            </div>
         </div>
 
         <div id="view-aliados" class="view-section">
             <div class="card-panel">
                 <div class="panel-title" id="form-aliado-title"><i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado</div>
                 <form id="form-aliado" onsubmit="saveAliado(event)">
-                    <div class="form-group">
-                        <label>Nombre Comercial (El que ve el cliente)</label>
-                        <input type="text" id="aliado-nombre" placeholder="Ej. SushiFever" required>
-                    </div>
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label>Usuario de Acceso (Para iniciar sesión)</label>
-                            <input type="text" id="aliado-usuario" placeholder="Ej. sushifever1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>PIN / Contraseña de Ingreso</label>
-                            <input type="text" id="aliado-pin" placeholder="Ej. 2026" required>
-                        </div>
-                    </div>
+                    <div class="form-group"><label>Nombre Comercial (Será su Usuario)</label><input type="text" id="aliado-nombre" placeholder="Ej. SushiFever" required></div>
+                    <div class="form-group"><label>PIN / Contraseña de Ingreso</label><input type="text" id="aliado-pin" placeholder="Ej. 2026" required></div>
                     <div class="form-group"><label>Teléfono</label><input type="text" id="aliado-telefono" required></div>
                     <div class="form-group"><label>Dirección</label><input type="text" id="aliado-direccion" required></div>
                     <button type="submit" class="btn-submit" id="btn-submit-aliado"><i class="fa-solid fa-circle-check"></i> Guardar Comercio</button>
@@ -747,17 +866,16 @@
             </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Nombre Comercial</th><th>Usuario Login</th><th>Teléfono</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>Nombre / Usuario</th><th>Teléfono</th><th>Dirección</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-aliados-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- MODAL WHATSAPP: ADMIN NOTIFICA A TODOS -->
     <div id="whatsapp-modal" class="modal-overlay">
         <div class="modal-body">
-            <div class="wa-share-title">🚀 ¡Pedido Confirmado en la Nube!</div>
+            <div class="wa-share-title">🚀 ¡Pedido Sincronizado en la Nube!</div>
             <div class="wa-button-list">
                 <a id="wa-btn-cliente" class="btn-wa-target" target="_blank"><span>Notificar al Cliente</span> <i class="fa-brands fa-whatsapp"></i></a>
                 <a id="wa-btn-aliado" class="btn-wa-target" target="_blank"><span>Notificar al Aliado</span> <i class="fa-brands fa-whatsapp"></i></a>
@@ -767,17 +885,35 @@
         </div>
     </div>
 
-    <!-- MODAL WHATSAPP: ALIADO NOTIFICA AL ADMIN -->
-    <div id="whatsapp-modal-aliado-admin" class="modal-overlay">
+    <div id="receipt-modal" class="modal-overlay">
         <div class="modal-body">
-            <div class="wa-share-title">✅ ¡Pedido Enviado a SunDelivery!</div>
-            <p style="text-align:center; font-size:0.9rem; margin-bottom:15px; color:#475569;">Debes avisarle a la central de SunDelivery para que te asigne el motorizado de inmediato.</p>
-            <div class="wa-button-list">
-                <a id="wa-btn-notificar-sundelivery" class="btn-wa-target" target="_blank" style="background-color:#fff3cd; border-color:#ffe69c;">
-                    <span style="color:#856404; font-weight:bold;">Avisar por WhatsApp a Central</span> <i class="fa-brands fa-whatsapp" style="color:#25d366;"></i>
-                </a>
+            <div class="receipt-config-box">
+                <div class="config-inputs">
+                    <input type="number" id="modal-tasa" value="45.50" step="0.01" oninput="updateTicketCalculations()">
+                    <input type="number" id="modal-monto" value="5.00" step="0.01" oninput="updateTicketCalculations()">
+                </div>
             </div>
-            <button class="btn-submit" onclick="closeAliadoModal()">Cerrar y Cargar Otro Pedido</button>
+            <div id="print-ticket-area">
+                <div class="tkt-header"><div class="title">SUN<span>DELIVERY</span></div><p>Valencia, Carabobo</p></div>
+                <div class="tkt-line"></div>
+                <div class="tkt-body">
+                    <div class="tkt-field"><span class="label">Cliente:</span> <span id="tkt-cliente">-</span></div>
+                    <div class="tkt-field"><span class="label">Tlf:</span> <span id="tkt-tlf">-</span></div>
+                    <div class="tkt-field"><span class="label">Dirección:</span> <span id="tkt-dir">-</span></div>
+                    <div class="tkt-field"><span class="label">Aliado:</span> <span id="tkt-aliado">-</span></div>
+                    <div class="tkt-field"><span class="label">Repartidor:</span> <span id="tkt-moto">-</span></div>
+                    <div class="tkt-line"></div>
+                    <div class="tkt-totals">
+                        <div class="tkt-field"><span class="label">Tasa Ref:</span> <span><span id="tkt-tasa-text">45.50</span> Bs</span></div>
+                        <div class="tkt-field tkt-total-usd"><span class="label">TOTAL USD:</span> <span>$<span id="tkt-usd-text">5.00</span></span></div>
+                        <div class="tkt-field tkt-total-bs"><span class="label">TOTAL BS:</span> <span><span id="tkt-bs-text">227.50</span> Bs</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer-btns">
+                <button class="btn-modal-action btn-modal-close" onclick="closeReceiptModal()">Cerrar</button>
+                <button class="btn-modal-action btn-modal-download" onclick="triggerDownloadJPG()"><i class="fa-solid fa-download"></i> Guardar Imagen</button>
+            </div>
         </div>
     </div>
 
@@ -788,48 +924,77 @@
             projectId: "sunvalencia-609f5",
             storageBucket: "sunvalencia-609f5.firebasestorage.app",
             messagingSenderId: "339030334268",
-            appId: "1:339030334268:web:3be1db9248948343591c39"
+            appId: "1:339030334268:web:3be1db9248948343591c39",
+            measurementId: "G-N345DPZFFG"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        function getVenezuelaDate() {
+            const now = new Date();
+            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
+            return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+        }
+
+        function parseDateVEToISO(dateStr) {
+            if(!dateStr) return "";
+            if(dateStr.includes("-")) return dateStr; 
+            const parts = dateStr.split("/");
+            if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return dateStr;
+        }
+
+        function getVenezuelaTime() {
+            const now = new Date();
+            return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
+        }
+
+        function FormatearBs(monto) {
+            return parseFloat(monto).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
 
         let aliados = [];
         let motorizados = [];
         let pedidos = [];
+        let gastos = [];
         let directorioClientes = [];
 
+        let selectedPedido = null;
         let editPedidoId = null;
+        let editMotoId = null;
         let editAliadoId = null;
+        let editClienteDirId = null;
+
+        // Variables de Roles y Configuración
         let usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
-        let porcComisionMotorizado = 0.70;
+        let porcComisionMotorizado = 0.70; // 70% por defecto
+        let cargaInicialPedidos = true;
 
-        syncCloudData();
-
-        // 1. INICIO DE SESIÓN MULTIFUNCIONAL
+        // SECCIÓN DE INICIO DE SESIÓN REPARADA
         function validateLogin() {
-            const userIn = document.getElementById('username-input').value.trim().toLowerCase();
+            const userIn = document.getElementById('username-input').value.trim();
             const pinIn = document.getElementById('pin-input').value.trim();
 
             if (!userIn || !pinIn) {
-                Swal.fire("Campos vacíos", "Ingresa usuario y contraseña.", "warning");
+                Swal.fire("Campos vacíos", "Por favor ingresa usuario y contraseña.", "warning");
                 return;
             }
 
-            if (userIn === 'admin' && pinIn === '1987') { 
+            // Acceso de Dueño / Administrador Principal
+            if (userIn.toLowerCase() === 'admin' && pinIn === '1987') { 
                 usuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
                 arrancarAplicacion();
             } else {
-                // Busca por 'usuario' (nuevo campo) o por 'nombre' comercial
-                const aliadoExiste = aliados.find(a => 
-                    (a.usuario && a.usuario.trim().toLowerCase() === userIn) || 
-                    a.nombre.trim().toLowerCase() === userIn
-                );
+                // Validación Dinámica de Aliados Comerciales en la Nube
+                const aliadoExiste = aliados.find(a => a.nombre.toLowerCase() === userIn.toLowerCase());
                 
-                if (aliadoExiste && String(aliadoExiste.pin).trim() === pinIn) { 
-                    usuarioActual = { username: aliadoExiste.usuario || aliadoExiste.nombre, rol: "aliado", aliadoComercial: aliadoExiste.nombre };
+                if (aliadoExiste && aliadoExiste.pin === pinIn) { 
+                    usuarioActual = { username: aliadoExiste.nombre, rol: "aliado", aliadoComercial: aliadoExiste.nombre };
                     arrancarAplicacion();
                 } else {
-                    Swal.fire("Error", "Usuario o PIN incorrectos.", "error");
+                    Swal.fire("Error de Acceso", "Usuario o PIN de aliado incorrectos.", "error");
                 }
             }
         }
@@ -838,25 +1003,36 @@
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('app-container').classList.add('active');
             
+            const hoyISO = getVenezuelaDate();
+            document.getElementById('filtro-fecha-desde').value = hoyISO;
+            document.getElementById('filtro-fecha-hasta').value = hoyISO;
+            document.getElementById('invoice-fecha-desde').value = hoyISO;
+            document.getElementById('invoice-fecha-hasta').value = hoyISO;
+
+            // Ajustar UI según Rol
             const badge = document.getElementById('badge-rol');
             badge.innerText = usuarioActual.rol.toUpperCase();
-
-            // Muestra u oculta interfaces según rol
+            
             if (usuarioActual.rol === 'aliado') {
-                document.getElementById('menu-navegacion-admin').style.display = 'none';
-                document.getElementById('menu-navegacion-aliado').style.display = 'flex';
-                document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-                
-                document.getElementById('view-portal-aliado').classList.add('active');
-                document.getElementById('aliado-portal-comercio').value = usuarioActual.aliadoComercial;
+                document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'none');
+                document.getElementById('filtro-aliado-box').style.display = 'none';
+                document.getElementById('container-select-aliado').style.display = 'none';
             } else {
-                document.getElementById('menu-navegacion-admin').style.display = 'flex';
-                document.getElementById('menu-navegacion-aliado').style.display = 'none';
-                switchTab('agregar');
-                renderPedidosPendientes(); // Para el admin
+                document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'block');
+                document.getElementById('filtro-aliado-box').style.display = 'block';
+                document.getElementById('container-select-aliado').style.display = 'block';
             }
 
+            syncCloudData();
+            initRealTimeListener();
             loadComisionConfig();
+            
+            document.addEventListener("click", function (e) {
+                if (!e.target.closest('.form-group')) {
+                    document.getElementById("sug-telefono").style.display = "none";
+                    document.getElementById("sug-nombre").style.display = "none";
+                }
+            });
         }
 
         function switchTab(tabId) {
@@ -866,211 +1042,820 @@
             document.getElementById(`view-${tabId}`).classList.add('active');
         }
 
-        // 2. FUNCIÓN: ALIADO GENERA PEDIDO (Queda Pendiente)
-        function generarPedidoDesdeAliado(e) {
-            e.preventDefault();
-            const cliente = document.getElementById('aliado-portal-nombre').value.trim();
-            const telefono = document.getElementById('aliado-portal-telefono').value.trim();
-            const direccion = document.getElementById('aliado-portal-direccion').value.trim();
-            const detalles = document.getElementById('aliado-portal-detalles').value.trim();
-            const aliadoComercio = usuarioActual.aliadoComercial;
-
-            const nuevoPedido = {
-                id: Date.now(),
-                fecha: parseDateVEToISO(getVenezuelaDate()).split('-').reverse().join('/'),
-                hora: getVenezuelaTime(),
-                cliente: cliente, 
-                telefono: telefono, 
-                direccion: direccion,
-                aliado: aliadoComercio, 
-                motorizado: "", // No asignado todavía
-                costo: 0,       // No asignado todavía
-                detalles: detalles,
-                estatus: "pendiente" // <--- ESTATUS CLAVE PARA EL ADMIN
-            };
-
-            db.collection('pedidos').add(nuevoPedido).then(() => {
-                // Preparar mensaje de WhatsApp para el Admin
-                const msgAdmin = encodeURIComponent(
-                    `*NUEVO PEDIDO GENERADO* 🚨\n\n` +
-                    `Hola SunDelivery, soy el aliado *${aliadoComercio}*. Acabo de cargar un nuevo pedido en el sistema.\n\n` +
-                    `👤 *Cliente:* ${cliente}\n` +
-                    `📞 *Teléfono:* ${telefono}\n` +
-                    `📍 *Dirección:* ${direccion}\n\n` +
-                    `Por favor entra al sistema para confirmar la tarifa y asignar motorizado.`
-                );
-
-                // Numero del Admin estipulado
-                document.getElementById('wa-btn-notificar-sundelivery').href = `https://api.whatsapp.com/send?phone=584244529892&text=${msgAdmin}`;
-                
-                document.getElementById('form-aliado-portal').reset();
-                document.getElementById('aliado-portal-comercio').value = aliadoComercio; // Reponer el readonly
-                document.getElementById('whatsapp-modal-aliado-admin').classList.add('active');
+        // CONTROL DE COMISIÓN EN FIRESTORE
+        function loadComisionConfig() {
+            db.collection('configuracion').doc('general').get().then(doc => {
+                if (doc.exists && doc.data().comision_motorizado) {
+                    porcComisionMotorizado = doc.data().comision_motorizado;
+                    document.getElementById('cfg-comision').value = Math.round(porcComisionMotorizado * 100);
+                } else {
+                    db.collection('configuracion').doc('general').set({ comision_motorizado: 0.70 });
+                }
             });
         }
 
-        function closeAliadoModal() {
-            document.getElementById('whatsapp-modal-aliado-admin').classList.remove('active');
+        function saveComisionConfig() {
+            const inputVal = parseFloat(document.getElementById('cfg-comision').value) || 70;
+            const decimalVal = inputVal / 100;
+            db.collection('configuracion').doc('general').update({ comision_motorizado: decimalVal })
+            .then(() => {
+                porcComisionMotorizado = decimalVal;
+                Swal.fire("Ajuste Guardado", `La comisión global se fijó en ${inputVal}%`, "success");
+                renderPedidos();
+            });
         }
 
-        // 3. ADMIN VE PEDIDOS PENDIENTES
-        function renderPedidosPendientes() {
-            if(usuarioActual.rol !== 'admin') return;
-            
-            const tbody = document.getElementById('tabla-pedidos-pendientes-body');
-            tbody.innerHTML = '';
-            
-            // Filtrar solo los pendientes
-            const pendientes = pedidos.filter(p => p.estatus === 'pendiente');
-            
-            if (pendientes.length === 0) {
-                document.getElementById('panel-pedidos-pendientes').style.display = 'none';
+        // ESCUCHA EN TIEMPO REAL
+        function initRealTimeListener() {
+            db.collection('pedidos').onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added" && !cargaInicialPedidos) {
+                        const pedidoData = change.doc.data();
+                        if (usuarioActual.rol === 'admin' || (usuarioActual.rol === 'aliado' && pedidoData.aliado === usuarioActual.aliadoComercial)) {
+                            reproducirNotificacion();
+                            mostrarNotificacionFlotante(pedidoData);
+                        }
+                    }
+                });
+                cargaInicialPedidos = false;
+            });
+        }
+
+        function reproducirNotificacion() {
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav");
+            audio.play().catch(() => {});
+        }
+
+        function mostrarNotificacionFlotante(pedido) {
+            const cont = document.getElementById('contenedor-alertas-flotantes');
+            const alertBox = document.createElement('div');
+            alertBox.className = 'alerta-notificacion-rt';
+            alertBox.innerHTML = `
+                <div style="font-weight:800; color:#ff6600; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> ¡NUEVO PEDIDO ENTRANTE!</div>
+                <div style="font-size:0.85rem; line-height:1.4;">
+                    <b>Aliado:</b> ${pedido.aliado}<br>
+                    <b>Cliente:</b> ${pedido.cliente}<br>
+                    <b>Destino:</b> ${pedido.direccion}
+                </div>
+            `;
+            cont.appendChild(alertBox);
+            setTimeout(() => { alertBox.remove(); }, 7000);
+        }
+
+        function toggleInvoiceFields() {
+            const tipo = document.getElementById('invoice-tipo-entidad').value;
+            if (tipo === 'ALIADO') {
+                document.getElementById('invoice-aliado-group').style.display = 'block';
+                document.getElementById('invoice-motorizado-group').style.display = 'none';
+            } else {
+                document.getElementById('invoice-aliado-group').style.display = 'none';
+                document.getElementById('invoice-motorizado-group').style.display = 'block';
+            }
+        }
+
+        function processInvoiceGeneration() {
+            const tipo = document.getElementById('invoice-tipo-entidad').value;
+            if (tipo === 'ALIADO') {
+                generateAliadoInvoice();
+            } else {
+                generateMotorizadoPayrollInvoice();
+            }
+        }
+
+        function generateAliadoInvoice() {
+            const nomAliado = document.getElementById('invoice-aliado').value;
+            const fDesde = document.getElementById('invoice-fecha-desde').value;
+            const fHasta = document.getElementById('invoice-fecha-hasta').value;
+
+            if (!nomAliado) { Swal.fire("Campo requerido", "Selecciona un aliado para liquidar.", "info"); return; }
+            if (!fDesde || !fHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
+
+            const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
+
+            const pedidosFiltrados = pedidos.filter(p => {
+                const pedidoFechaISO = parseDateVEToISO(p.fecha);
+                if (nomAliado !== "TODOS_LOS_ALIADOS" && p.aliado !== nomAliado) return false;
+                if (pedidoFechaISO < fDesde || pedidoFechaISO > fHasta) return false;
+                return true;
+            });
+
+            if (pedidosFiltrados.length === 0) {
+                Swal.fire("Sin datos", "No existen órdenes para este aliado en el rango seleccionado.", "info");
                 return;
             }
+
+            document.getElementById('fact-titulo-documento').innerText = "FACTURA CONSOLIDADA DE COBRO";
+            document.getElementById('fact-bloque-entidad').innerHTML = `<b>Aliado Comercial:</b> <span>${nomAliado === "TODOS_LOS_ALIADOS" ? "TODOS LOS ALIADOS" : nomAliado}</span>`;
             
-            document.getElementById('panel-pedidos-pendientes').style.display = 'block';
+            const fDesdeFormateada = fDesde.split('-').reverse().join('/');
+            const fHastaFormateada = fHasta.split('-').reverse().join('/');
+            document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
+            document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+
+            const tbodyFactura = document.getElementById('fact-detalles-ordenes');
+            tbodyFactura.innerHTML = '';
+
+            let totalUSD = 0;
+            pedidosFiltrados.forEach(p => {
+                totalUSD += p.costo;
+                tbodyFactura.innerHTML += `
+                    <tr style="border-bottom: 1px dashed #dddddd;">
+                        <td style="padding: 6px 0;">${p.cliente} (${p.fecha})<br><span style="font-size:0.65rem; color:#666;">Ref: ${p.id}</span></td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">$${p.costo.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('fact-total-usd').innerText = totalUSD.toFixed(2);
+            document.getElementById('fact-total-bs').innerText = FormatearBs(totalUSD * tasa);
+            document.getElementById('footer-pago-movil').innerHTML = "<b>Banco:</b> Banesco / Venezuela<br><b>Teléfono:</b> 04244529892<br><b>RIF:</b> 18410871";
+
+            renderInvoiceToImage(nomAliado);
+        }
+
+        function generateMotorizadoPayrollInvoice() {
+            const nomMoto = document.getElementById('invoice-motorizado-payroll').value;
+            const fDesde = document.getElementById('invoice-fecha-desde').value;
+            const fHasta = document.getElementById('invoice-fecha-hasta').value;
+
+            if (!nomMoto) { Swal.fire("Campo requerido", "Selecciona un motorizado para liquidar.", "info"); return; }
+            if (!fDesde || !fHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
+
+            const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
+
+            const pedidosFiltrados = pedidos.filter(p => {
+                const pedidoFechaISO = parseDateVEToISO(p.fecha);
+                if (p.motorizado !== nomMoto) return false;
+                if (pedidoFechaISO < fDesde || pedidoFechaISO > fHasta) return false;
+                return true;
+            });
+
+            if (pedidosFiltrados.length === 0) {
+                Swal.fire("Sin datos", "No existen rutas completadas por este repartidor en el rango seleccionado.", "info");
+                return;
+            }
+
+            document.getElementById('fact-titulo-documento').innerText = "RECIBO DE PAGO DE MOTORIZADO";
+            document.getElementById('fact-bloque-entidad').innerHTML = `<b>Motorizado:</b> <span>${nomMoto}</span><br><b>Porcentaje de Comisión:</b> <span>${Math.round(porcComisionMotorizado * 100)}%</span>`;
             
-            pendientes.forEach(p => {
+            const fDesdeFormateada = fDesde.split('-').reverse().join('/');
+            const fHastaFormateada = fHasta.split('-').reverse().join('/');
+            document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
+            document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+
+            const tbodyFactura = document.getElementById('fact-detalles-ordenes');
+            tbodyFactura.innerHTML = '';
+
+            let totalProducido = 0;
+            pedidosFiltrados.forEach(p => {
+                totalProducido += p.costo;
+                tbodyFactura.innerHTML += `
+                    <tr style="border-bottom: 1px dashed #dddddd;">
+                        <td style="padding: 6px 0;">${p.cliente} (${p.fecha})<br><span style="font-size:0.65rem; color:#666;">Aliado: ${p.aliado}</span></td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">$${p.costo.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            let comisionGanada = totalProducido * porcComisionMotorizado;
+
+            tbodyFactura.innerHTML += `
+                <tr style="border-top: 2px solid #000;">
+                    <td style="padding: 8px 0; font-weight: bold;">Subtotal Producido:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: bold;">$${totalProducido.toFixed(2)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 4px 0; font-weight: bold; color: #10b981;">Comisión Neta (${Math.round(porcComisionMotorizado * 100)}%):</td>
+                    <td style="padding: 4px 0; text-align: right; font-weight: bold; color: #10b981;">$${comisionGanada.toFixed(2)}</td>
+                </tr>
+            `;
+
+            document.getElementById('fact-total-usd').innerText = comisionGanada.toFixed(2);
+            document.getElementById('fact-total-bs').innerText = FormatearBs(comisionGanada * tasa);
+            document.getElementById('footer-pago-movil').innerHTML = "<b>Recibo generado automáticamente.</b><br>Pago correspondiente a comisiones por servicios de logística acumulados.";
+
+            renderInvoiceToImage(nomMoto);
+        }
+
+        function renderInvoiceToImage(entidadNombre) {
+            const disenoRecibo = document.getElementById('recibo-diseno-factura');
+            disenoRecibo.style.display = 'block';
+
+            Swal.fire({ title: 'Compilando imagen...', didOpen: () => { Swal.showLoading(); } });
+
+            html2canvas(disenoRecibo, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                document.getElementById('imagen-vista-previa').src = imgData;
+                document.getElementById('seccion-vista-previa').style.display = 'block';
+                document.getElementById('boton-descargar-jpg').href = imgData;
+                
+                const nombreArchivo = entidadNombre.replace(/\s+/g, '_');
+                document.getElementById('boton-descargar-jpg').download = `Recibo_${nombreArchivo}.jpg`;
+                
+                disenoRecibo.style.display = 'none';
+                Swal.close();
+                document.getElementById('seccion-vista-previa').scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+
+        function syncCloudData() {
+            db.collection('aliados').onSnapshot(snapshot => {
+                aliados = [];
+                snapshot.forEach(doc => aliados.push({ firestoreId: doc.id, ...doc.data() }));
+                renderAliados();
+                updateSelectDropdowns();
+            });
+
+            db.collection('motorizados').onSnapshot(snapshot => {
+                motorizados = [];
+                snapshot.forEach(doc => motorizados.push({ firestoreId: doc.id, ...doc.data() }));
+                renderMotorizados();
+                updateSelectDropdowns();
+            });
+
+            db.collection('gastos').onSnapshot(snapshot => {
+                gastos = [];
+                snapshot.forEach(doc => gastos.push({ firestoreId: doc.id, ...doc.data() }));
+                renderGastos();
+            });
+
+            db.collection('clientes').onSnapshot(snapshot => {
+                directorioClientes = [];
+                snapshot.forEach(doc => directorioClientes.push({ firestoreId: doc.id, ...doc.data() }));
+                renderClientesDirectorio();
+            });
+
+            db.collection('pedidos').onSnapshot(snapshot => {
+                pedidos = [];
+                snapshot.forEach(doc => pedidos.push({ firestoreId: doc.id, ...doc.data() }));
+                pedidos.sort((a, b) => b.id - a.id);
+                renderPedidos();
+            });
+        }
+
+        function updateSelectDropdowns() {
+            const selectAliado = document.getElementById('ped-aliado');
+            const selectFiltroAliado = document.getElementById('filtro-aliado-busqueda');
+            const selectInvoiceAliado = document.getElementById('invoice-aliado');
+            
+            const selectMoto = document.getElementById('ped-motorizado');
+            const selectFiltroMoto = document.getElementById('filtro-motorizado-busqueda');
+            const selectInvoicePayroll = document.getElementById('invoice-motorizado-payroll');
+
+            // Actualizar select de aliados
+            if(selectAliado) {
+                selectAliado.innerHTML = '<option value="">Seleccione un aliado...</option>';
+                aliados.forEach(a => selectAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+            }
+            if(selectFiltroAliado) {
+                selectFiltroAliado.innerHTML = '<option value="">Todos los Aliados</option>';
+                aliados.forEach(a => selectFiltroAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+            }
+            if(selectInvoiceAliado) {
+                selectInvoiceAliado.innerHTML = '<option value="">Seleccione Aliado...</option><option value="TODOS_LOS_ALIADOS">-- SELECCIONAR TODOS LOS ALIADOS --</option>';
+                aliados.forEach(a => selectInvoiceAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+            }
+
+            // Actualizar select de motorizados
+            if(selectMoto) {
+                selectMoto.innerHTML = '<option value="">Seleccione un motorizado...</option>';
+                motorizados.forEach(m => selectMoto.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`);
+            }
+            if(selectFiltroMoto) {
+                selectFiltroMoto.innerHTML = '<option value="">Todos los Motorizados</option>';
+                motorizados.forEach(m => selectFiltroMoto.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`);
+            }
+            if(selectInvoicePayroll) {
+                selectInvoicePayroll.innerHTML = '<option value="">Seleccione Motorizado...</option>';
+                motorizados.forEach(m => selectInvoicePayroll.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`);
+            }
+        }
+
+        function triggerAutocomplete(type) {
+            const valInputTel = document.getElementById("ped-telefono").value.trim().toLowerCase();
+            const valInputNom = document.getElementById("ped-nombre").value.trim().toLowerCase();
+            
+            const boxTel = document.getElementById("sug-telefono");
+            const boxNom = document.getElementById("sug-nombre");
+
+            boxTel.innerHTML = "";
+            boxNom.innerHTML = "";
+            boxTel.style.display = "none";
+            boxNom.style.display = "none";
+
+            if (type === 'telefono' && valInputTel.length >= 2) {
+                const coincidencias = directorioClientes.filter(c => c.telefono.toLowerCase().includes(valInputTel));
+                if (coincidencias.length > 0) {
+                    boxTel.style.display = "block";
+                    coincidencias.forEach(c => {
+                        const div = document.createElement("div");
+                        div.className = "suggestion-item";
+                        div.innerHTML = `<span>📱 <b>${c.telefono}</b></span><span class="sug-meta">${c.nombre}</span>`;
+                        div.onclick = () => fillFormFromSuggestion(c);
+                        boxTel.appendChild(div);
+                    });
+                }
+            } 
+            else if (type === 'nombre' && valInputNom.length >= 2) {
+                const coincidencias = directorioClientes.filter(c => c.nombre.toLowerCase().includes(valInputNom));
+                if (coincidencias.length > 0) {
+                    boxNom.style.display = "block";
+                    coincidencias.forEach(c => {
+                        const div = document.createElement("div");
+                        div.className = "suggestion-item";
+                        div.innerHTML = `<span>👤 <b>${c.nombre}</b></span><span class="sug-meta">${c.telefono}</span>`;
+                        div.onclick = () => fillFormFromSuggestion(c);
+                        boxNom.appendChild(div);
+                    });
+                }
+            }
+        }
+
+        function fillFormFromSuggestion(cliente) {
+            document.getElementById("ped-telefono").value = cliente.telefono;
+            document.getElementById("ped-nombre").value = cliente.nombre;
+            document.getElementById("ped-direccion").value = cliente.direccion;
+            
+            document.getElementById("sug-telefono").style.display = "none";
+            document.getElementById("sug-nombre").style.display = "none";
+
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Cliente cargado con éxito', showConfirmButton: false, timer: 1500 });
+        }
+
+        function saveDirectorioCliente(e) {
+            e.preventDefault();
+            const nom = document.getElementById('cli-nombre').value.trim();
+            const tlf = document.getElementById('cli-telefono').value.trim();
+            const dir = document.getElementById('cli-direccion').value.trim();
+
+            if (editClienteDirId !== null) {
+                db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
+                .then(() => {
+                    editClienteDirId = null;
+                    document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes`;
+                    document.getElementById('btn-submit-cliente-dir').innerHTML = `<i class="fa-solid fa-user-plus"></i> Guardar en Cartera`;
+                    document.getElementById('form-directorio-cliente').reset();
+                    Swal.fire("Actualizado", "Datos del cliente modificados en la nube.", "success");
+                });
+            } else {
+                db.collection('clientes').add({ nombre: nom, telefono: tlf, direccion: dir, creado: Date.now() })
+                .then(() => {
+                    document.getElementById('form-directorio-cliente').reset();
+                    Swal.fire("Guardado", "Cliente nuevo añadido a la cartera comercial.", "success");
+                });
+            }
+        }
+
+        function renderClientesDirectorio() {
+            const tbody = document.getElementById('tabla-clientes-directorio-body');
+            tbody.innerHTML = '';
+            if(directorioClientes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">Ningún cliente en la base de datos de la cartera.</td></tr>`;
+                return;
+            }
+            directorioClientes.forEach(c => {
                 tbody.innerHTML += `
-                    <tr onclick="cargarPedidoParaConfirmar('${p.firestoreId}')" style="background-color: #fff; cursor:pointer;">
-                        <td>${p.hora || ''}</td>
-                        <td class="text-bold">${p.aliado}</td>
-                        <td>${p.cliente}</td>
-                        <td><span style="background:#ef4444; color:#fff; padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">Confirmar Ahora</span></td>
+                    <tr>
+                        <td class="text-bold">${c.nombre}</td>
+                        <td>${c.telefono}</td>
+                        <td>${c.direccion}</td>
+                        <td>
+                            <div class="action-cell">
+                                <button type="button" class="action-btn" onclick="editClienteDir('${c.firestoreId}')">✏️</button>
+                                <button type="button" class="action-btn" onclick="deleteClienteDir('${c.firestoreId}')">🗑️</button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
         }
 
-        // 4. ADMIN HACE CLIC EN PENDIENTE Y CONFIRMA
-        function cargarPedidoParaConfirmar(fId) {
-            const p = pedidos.find(item => item.firestoreId === fId);
-            if (!p) return;
-            
-            editPedidoId = fId;
-            document.getElementById('ped-estatus-actual').value = "pendiente"; // para saber que lo estamos confirmando
-            
-            document.getElementById('form-pedido-title').innerHTML = `⚠️ Completar y Confirmar Pedido de ${p.aliado}`;
-            document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-check-double"></i> Guardar y Confirmar Ruta`;
-            document.getElementById('btn-cancelar-edicion').style.display = "block";
-
-            document.getElementById('ped-nombre').value = p.cliente;
-            document.getElementById('ped-telefono').value = p.telefono;
-            document.getElementById('ped-direccion').value = p.direccion;
-            document.getElementById('ped-aliado').value = p.aliado;
-            document.getElementById('ped-detalles').value = p.detalles;
-            
-            // Se dejan en blanco para que el Admin los llene obligatoriamente
-            document.getElementById('ped-motorizado').value = "";
-            document.getElementById('ped-costo').value = "";
-            
-            document.getElementById('panel-form-principal').scrollIntoView({ behavior: 'smooth' });
+        function editClienteDir(fId) {
+            const c = directorioClientes.find(item => item.firestoreId === fId);
+            if (!c) return;
+            editClienteDirId = fId;
+            document.getElementById('form-cliente-title').innerHTML = `✏️ Editar Ficha Cliente`;
+            document.getElementById('btn-submit-cliente-dir').innerHTML = `Actualizar Cliente`;
+            document.getElementById('cli-nombre').value = c.nombre;
+            document.getElementById('cli-telefono').value = c.telefono;
+            document.getElementById('cli-direccion').value = c.direccion;
         }
 
-        function cancelarEdicion() {
-            editPedidoId = null;
-            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
-            document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
-            document.getElementById('btn-cancelar-edicion').style.display = "none";
-            document.getElementById('ped-estatus-actual').value = "confirmado";
-            document.getElementById('form-pedido').reset();
+        function deleteClienteDir(fId) {
+            Swal.fire({
+                title: '¿Eliminar de la cartera?',
+                text: "El cliente ya no aparecerá en las sugerencias automáticas.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6600',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, borrar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    db.collection('clientes').doc(fId).delete().then(() => {
+                        Swal.fire('Removido', 'Cliente desvinculado.', 'success');
+                    });
+                }
+            });
         }
 
-        // 5. GUARDAR / ACTUALIZAR PEDIDO Y ENVIAR WA (CLIENTE/MOTO/ALIADO)
+        function limpiarFiltrosBusqueda() {
+            const hoyISO = getVenezuelaDate();
+            document.getElementById('filtro-fecha-desde').value = hoyISO;
+            document.getElementById('filtro-fecha-hasta').value = hoyISO;
+            document.getElementById('filtro-aliado-busqueda').value = "";
+            if(document.getElementById('filtro-motorizado-busqueda')) document.getElementById('filtro-motorizado-busqueda').value = "";
+            renderPedidos();
+        }
+
+        function registerGasto(event) {
+            event.preventDefault();
+            const det = document.getElementById('gasto-detalle').value;
+            const mon = parseFloat(document.getElementById('gasto-monto').value) || 0;
+            
+            db.collection('gastos').add({ detalle: det, monto: mon, fecha: getVenezuelaDate() }).then(() => {
+                document.getElementById('form-gastos').reset();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado', showConfirmButton: false, timer: 1500 });
+            });
+        }
+
+        function renderGastos() {
+            const container = document.getElementById('expense-container');
+            if (gastos.length === 0) { container.innerHTML = 'Sin egresos registrados.'; return; }
+            container.innerHTML = '';
+            gastos.forEach(g => {
+                container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
+            });
+            renderPedidos(); // Vuelve a filtrar y recalcular todo el dashboard de finanzas
+        }
+
+        function deleteGasto(id) {
+            Swal.fire({
+                title: '¿Eliminar Gasto?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Eliminar'
+            }).then((res) => {
+                if(res.isConfirmed) db.collection('gastos').doc(id).delete();
+            });
+        }
+
+        function renderPedidos() {
+            const tbody = document.getElementById('tabla-pedidos-body');
+            tbody.innerHTML = '';
+
+            const fDesde = document.getElementById('filtro-fecha-desde').value;
+            const fHasta = document.getElementById('filtro-fecha-hasta').value;
+            
+            const fAliado = usuarioActual.rol === 'aliado' ? usuarioActual.aliadoComercial : document.getElementById('filtro-aliado-busqueda').value;
+            const fMotorizado = usuarioActual.rol === 'aliado' ? "" : document.getElementById('filtro-motorizado-busqueda').value;
+
+            // 1. FILTRADO INTELIGENTE DE PEDIDOS EN TIEMPO REAL
+            const pedidosFiltrados = pedidos.filter(p => {
+                const pedidoFechaISO = parseDateVEToISO(p.fecha);
+                if (fDesde && pedidoFechaISO < fDesde) return false;
+                if (fHasta && pedidoFechaISO > fHasta) return false;
+                if (fAliado && p.aliado !== fAliado) return false;
+                if (fMotorizado && p.motorizado !== fMotorizado) return false;
+                return true;
+            });
+
+            // 2. CALCULAR MÉTRICAS FINANCIERAS BASADAS EN LOS DATOS FILTRADOS
+            let totalIngresos = 0;
+            pedidosFiltrados.forEach(p => {
+                totalIngresos += p.costo;
+            });
+            
+            let totalGastos = 0;
+            if (usuarioActual.rol === 'admin') {
+                const gastosFiltrados = gastos.filter(g => {
+                    if (fDesde && g.fecha < fDesde) return false;
+                    if (fHasta && g.fecha > fHasta) return false;
+                    return true;
+                });
+                gastosFiltrados.forEach(g => totalGastos += g.monto);
+            }
+
+            let neto = totalIngresos - totalGastos;
+
+            // 3. PINTAR INDICADORES EN LAS TARJETAS (DASHBOARD)
+            document.getElementById('dash-cant-pedidos').innerText = pedidosFiltrados.length;
+            document.getElementById('dash-ingreso-usd').innerText = `$${totalIngresos.toFixed(2)}`;
+            
+            if (usuarioActual.rol === 'admin') {
+                document.getElementById('dash-gasto-usd').innerText = `$${totalGastos.toFixed(2)}`;
+                document.getElementById('dash-balance-neto').innerText = `$${neto.toFixed(2)}`;
+                const boxNeto = document.getElementById('dash-neto-box');
+                if(neto >= 0) { boxNeto.className = "dash-card neto-pos"; } else { boxNeto.className = "dash-card neto-neg"; }
+            }
+
+            // 4. RENDERIZAR TABLA DE PEDIDOS FILTRADOS
+            if(pedidosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;" class="text-italic">No hay pedidos registrados con los filtros seleccionados.</td></tr>`;
+                return;
+            }
+
+            pedidosFiltrados.forEach(p => {
+                let btnAcciones = usuarioActual.rol === 'admin' ? `
+                    <td>
+                        <div class="action-cell">
+                            <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
+                            <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
+                        </div>
+                    </td>
+                ` : `<td class="v-admin"></td>`;
+
+                tbody.innerHTML += `
+                    <tr onclick="openReceiptModal('${p.firestoreId}')">
+                        <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
+                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                        <td>${p.direccion}</td>
+                        <td>${p.aliado}</td>
+                        <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
+                        <td class="text-orange">$${p.costo.toFixed(2)}</td>
+                        <td>${p.detalles}</td>
+                        ${btnAcciones}
+                    </tr>
+                `;
+            });
+        }
+
         function processNewPedido(e) {
             e.preventDefault();
             const clientName = document.getElementById('ped-nombre').value.trim();
             const clientPhone = document.getElementById('ped-telefono').value.trim();
             const clientDir = document.getElementById('ped-direccion').value.trim();
-            const chosenAliado = document.getElementById('ped-aliado').value;
-            const chosenMoto = document.getElementById('ped-motorizado').value;
+            
+            const chosenAliado = usuarioActual.rol === 'aliado' ? usuarioActual.aliadoComercial : document.getElementById('ped-aliado').value;
+            const chosenMoto = usuarioActual.rol === 'aliado' ? "Pendiente por Asignar" : document.getElementById('ped-motorizado').value;
+            
             const costValue = parseFloat(document.getElementById('ped-costo').value) || 0;
             const detailText = document.getElementById('ped-detalles').value || "Despacho";
 
-            const estadoAnterior = document.getElementById('ped-estatus-actual').value; // si era pendiente o no
-
-            const dataAGuardar = {
-                cliente: clientName, telefono: clientPhone, direccion: clientDir,
-                aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, 
-                detalles: detailText, estatus: "confirmado" // Al guardar el Admin, siempre pasa a confirmado
-            };
+            const existeCliente = directorioClientes.some(c => c.telefono === clientPhone);
+            if (!existeCliente && clientPhone && clientName) {
+                db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
+            }
 
             if (editPedidoId !== null) {
-                // ACTUALIZAR EXISTENTE O CONFIRMAR EL DEL ALIADO
-                db.collection('pedidos').doc(editPedidoId).update(dataAGuardar).then(() => {
-                    // Si el pedido era pendiente, abrimos el modal de WhatsApp para enviar los mensajes definitivos
-                    if (estadoAnterior === "pendiente") {
-                        prepararEnlacesWA(dataAGuardar);
-                    } else {
-                        Swal.fire("Modificado", "Pedido actualizado con éxito.", "success");
-                    }
-                    cancelarEdicion();
+                db.collection('pedidos').doc(editPedidoId).update({
+                    cliente: clientName, telefono: clientPhone, direccion: clientDir,
+                    aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
+                }).then(() => {
+                    editPedidoId = null;
+                    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+                    document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
+                    document.getElementById('form-pedido').reset();
+                    Swal.fire("Modificado", "Pedido actualizado con éxito.", "success");
+                    switchTab('gestion');
                 });
             } else {
-                // CREAR UNO TOTALMENTE NUEVO DESDE CERO COMO ADMIN
                 const numericId = Date.now();
+                const nowVE = new Date();
+                const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+                const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(nowVE);
+                const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}/${parts.find(p => p.type === 'month').value}/${parts.find(p => p.type === 'year').value}`;
+
                 const nuevoPedido = {
-                    ...dataAGuardar,
                     id: numericId,
-                    fecha: parseDateVEToISO(getVenezuelaDate()).split('-').reverse().join('/'),
-                    hora: getVenezuelaTime()
+                    fecha: fechaFormatSalida,
+                    hora: getVenezuelaTime(),
+                    cliente: clientName, telefono: clientPhone, direccion: clientDir,
+                    aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
                 };
 
                 db.collection('pedidos').add(nuevoPedido).then(() => {
-                    prepararEnlacesWA(nuevoPedido);
-                    cancelarEdicion();
+                    const dataAliado = aliados.find(a => a.nombre === nuevoPedido.aliado) || { telefono: "" };
+                    const dataMoto = motorizados.find(m => m.nombre === nuevoPedido.motorizado) || { telefono: "" };
+                    
+                    const msgCliente = encodeURIComponent(
+                        `*SUN DELIVERY VALENCIA* 🚀\n\n` +
+                        `¡Hola *${nuevoPedido.cliente}*! Tu servicio de entrega ha sido procesado de manera exitosa.\n\n` +
+                        `🏪 *Comercio:* ${nuevoPedido.aliado}\n` +
+                        `🛵 *Repartidor:* ${nuevoPedido.motorizado}\n` +
+                        `📍 *Dirección de Entrega:* ${nuevoPedido.direccion}\n` +
+                        `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
+                        `💵 *Costo Delivery:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                        `✨ ¡Muchas gracias por tu preferencia!`
+                    );
+
+                    const msgAliado = encodeURIComponent(
+                        `*NOTIFICACIÓN DE DESPACHO* 🏪\n\n` +
+                        `Estimado aliado comercial de *${nuevoPedido.aliado}*, le informamos que hemos asignado una unidad para su orden.\n\n` +
+                        `🛵 *Motorizado Asignado:* ${nuevoPedido.motorizado}\n` +
+                        `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
+                        `📍 *Destino:* ${nuevoPedido.direccion}\n` +
+                        `📦 *Detalle del Paquete:* ${nuevoPedido.detalles}\n` +
+                        `💵 *Monto de Ruta:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                        `🤝 ¡Trabajando juntos para ofrecer el mejor servicio!`
+                    );
+
+                    const msgMotorizado = encodeURIComponent(
+                        `*NUEVA ASIGNACIÓN DE RUTA* 🏍️\n\n` +
+                        `Hola *${nuevoPedido.motorizado}*, tienes un nuevo despacho activo.\n\n` +
+                        `🏪 *Retira en Aliado:* ${nuevoPedido.aliado}\n` +
+                        `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
+                        `📞 *Tlf Cliente:* +58 ${nuevoPedido.telefono}\n` +
+                        `📍 *Dirección:* ${nuevoPedido.direccion}\n` +
+                        `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
+                        `💰 *Cobrar al Cliente:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                        `⚠️ *Importante:* Confirmar al llegar al destino.`
+                    );
+
+                    document.getElementById('wa-btn-cliente').href = `https://api.whatsapp.com/send?phone=${nuevoPedido.telefono}&text=${msgCliente}`;
+                    document.getElementById('wa-btn-aliado').href = `https://api.whatsapp.com/send?phone=${dataAliado.telefono}&text=${msgAliado}`;
+                    document.getElementById('wa-btn-motorizado').href = `https://api.whatsapp.com/send?phone=${dataMoto.telefono}&text=${msgMotorizado}`;
+
+                    document.getElementById('form-pedido').reset();
+                    document.getElementById('whatsapp-modal').classList.add('active');
                 });
             }
         }
 
-        function prepararEnlacesWA(pedidoData) {
-            const dataAliado = aliados.find(a => a.nombre === pedidoData.aliado) || { telefono: "" };
-            const dataMoto = motorizados.find(m => m.nombre === pedidoData.motorizado) || { telefono: "" };
+        function editPedido(event, fId) {
+            if (event) event.stopPropagation();
+            const p = pedidos.find(item => item.firestoreId === fId);
+            if (!p) return;
             
-            const msgCliente = encodeURIComponent(
-                `*SUN DELIVERY VALENCIA* 🚀\n\n¡Hola *${pedidoData.cliente}*! Tu servicio de entrega ha sido procesado.\n\n🏪 *Comercio:* ${pedidoData.aliado}\n🛵 *Repartidor:* ${pedidoData.motorizado}\n💵 *Costo Delivery:* $${pedidoData.costo.toFixed(2)}\n\n✨ ¡Gracias por tu preferencia!`
-            );
-            const msgAliado = encodeURIComponent(
-                `*Ruta Confirmada* 🏪\n\nHemos asignado motorizado para su cliente ${pedidoData.cliente}.\n🛵 *Unidad:* ${pedidoData.motorizado}\n💵 *Costo Ruta:* $${pedidoData.costo.toFixed(2)}`
-            );
-            const msgMotorizado = encodeURIComponent(
-                `*NUEVA ASIGNACIÓN* 🏍️\n\nHola *${pedidoData.motorizado}*.\n🏪 *Retira en:* ${pedidoData.aliado}\n👤 *Cliente:* ${pedidoData.cliente}\n📞 *Tlf:* +58 ${pedidoData.telefono}\n📍 *Destino:* ${pedidoData.direccion}\n💰 *Cobrar Delivery:* $${pedidoData.costo.toFixed(2)}`
-            );
+            editPedidoId = fId;
+            document.getElementById('form-pedido-title').innerHTML = `✏️ Editar Pedido Comercial`;
+            document.getElementById('btn-submit-pedido').innerHTML = `Actualizar Pedido`;
 
-            document.getElementById('wa-btn-cliente').href = `https://api.whatsapp.com/send?phone=${pedidoData.telefono}&text=${msgCliente}`;
-            document.getElementById('wa-btn-aliado').href = `https://api.whatsapp.com/send?phone=${dataAliado.telefono}&text=${msgAliado}`;
-            document.getElementById('wa-btn-motorizado').href = `https://api.whatsapp.com/send?phone=${dataMoto.telefono}&text=${msgMotorizado}`;
+            document.getElementById('ped-nombre').value = p.cliente;
+            document.getElementById('ped-telefono').value = p.telefono;
+            document.getElementById('ped-direccion').value = p.direccion;
+            if(usuarioActual.rol === 'admin') document.getElementById('ped-aliado').value = p.aliado;
+            document.getElementById('ped-motorizado').value = p.motorizado;
+            document.getElementById('ped-costo').value = p.costo;
+            document.getElementById('ped-detalles').value = p.detalles;
+            switchTab('agregar');
+        }
 
-            document.getElementById('whatsapp-modal').classList.add('active');
+        function deletePedido(event, fId) {
+            if (event) event.stopPropagation();
+            Swal.fire({
+                title: '¿Eliminar Pedido?',
+                text: "Esta acción borrará el registro permanente en la nube.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6600',
+                confirmButtonText: 'Sí, borrar de la nube'
+            }).then((res) => {
+                if(res.isConfirmed) {
+                    db.collection('pedidos').doc(fId).delete().then(() => {
+                        Swal.fire("Borrado", "El despacho fue eliminado.", "success");
+                    });
+                }
+            });
         }
 
         function closeWhatsAppModal() {
             document.getElementById('whatsapp-modal').classList.remove('active');
+            switchTab('gestion');
         }
 
-        // 6. GESTIÓN DE ALIADOS (CON CAMPO USUARIO)
+        function openReceiptModal(fId) {
+            selectedPedido = pedidos.find(item => item.firestoreId === fId);
+            if (!selectedPedido) return;
+
+            document.getElementById('tkt-cliente').innerText = selectedPedido.cliente;
+            document.getElementById('tkt-tlf').innerText = selectedPedido.telefono;
+            document.getElementById('tkt-dir').innerText = selectedPedido.direccion;
+            document.getElementById('tkt-aliado').innerText = selectedPedido.aliado;
+            document.getElementById('tkt-moto').innerText = selectedPedido.motorizado || 'Por asignar';
+
+            document.getElementById('modal-monto').value = selectedPedido.costo.toFixed(2);
+            
+            updateTicketCalculations();
+            document.getElementById('receipt-modal').classList.add('active');
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').classList.remove('active');
+            selectedPedido = null;
+        }
+
+        function updateTicketCalculations() {
+            const tasa = parseFloat(document.getElementById('modal-tasa').value) || 45.50;
+            const monto = parseFloat(document.getElementById('modal-monto').value) || 0;
+
+            document.getElementById('tkt-tasa-text').innerText = tasa.toFixed(2);
+            document.getElementById('tkt-usd-text').innerText = monto.toFixed(2);
+            document.getElementById('tkt-bs-text').innerText = FormatearBs(monto * tasa);
+        }
+
+        function triggerDownloadJPG() {
+            const tktArea = document.getElementById('print-ticket-area');
+            Swal.fire({ title: 'Generando Imagen...', didOpen: () => { Swal.showLoading(); } });
+
+            html2canvas(tktArea, { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = `Ticket_${selectedPedido ? selectedPedido.id : Date.now()}.jpg`;
+                link.click();
+                Swal.close();
+            });
+        }
+
+        function saveMotorizado(e) {
+            e.preventDefault();
+            const nom = document.getElementById('moto-nombre').value.trim();
+            const tlf = document.getElementById('moto-telefono').value.trim();
+            const pla = document.getElementById('moto-placa').value.trim();
+            const dir = document.getElementById('moto-direccion').value.trim();
+
+            if (editMotoId !== null) {
+                db.collection('motorizados').doc(editMotoId).update({ nombre: nom, telefono: tlf, placa: pla, direccion: dir })
+                .then(() => {
+                    editMotoId = null;
+                    document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores`;
+                    document.getElementById('btn-submit-moto').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Repartidor`;
+                    document.getElementById('form-motorizado').reset();
+                    Swal.fire("Actualizado", "Repartidor modificado con éxito.", "success");
+                });
+            } else {
+                db.collection('motorizados').add({ nombre: nom, telefono: tlf, placa: pla, direccion: dir, creado: Date.now() })
+                .then(() => {
+                    document.getElementById('form-motorizado').reset();
+                    Swal.fire("Guardado", "Nuevo motorizado integrado a las rutas.", "success");
+                });
+            }
+        }
+
+        function renderMotorizados() {
+            const tbody = document.getElementById('tabla-motorizados-body');
+            tbody.innerHTML = '';
+            if(motorizados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay motorizados registrados.</td></tr>`;
+                return;
+            }
+            motorizados.forEach(m => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-bold">${m.nombre}</td>
+                        <td>${m.telefono}</td>
+                        <td><span class="badge-blue">${m.placa}</span></td>
+                        <td>${m.direccion}</td>
+                        <td>
+                            <div class="action-cell">
+                                <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')">✏️</button>
+                                <button type="button" class="action-btn" onclick="deleteMotorizado('${m.firestoreId}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editMotorizado(fId) {
+            const m = motorizados.find(item => item.firestoreId === fId);
+            if (!m) return;
+            editMotoId = fId;
+            document.getElementById('form-moto-title').innerHTML = `✏️ Editar Repartidor`;
+            document.getElementById('btn-submit-moto').innerHTML = `Actualizar Repartidor`;
+            document.getElementById('moto-nombre').value = m.nombre;
+            document.getElementById('moto-telefono').value = m.telefono;
+            document.getElementById('moto-placa').value = m.placa;
+            document.getElementById('moto-direccion').value = m.direccion;
+        }
+
+        function deleteMotorizado(fId) {
+            Swal.fire({
+                title: '¿Remover Motorizado?',
+                text: "Se eliminará permanentemente de las listas de asignación.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6600',
+                confirmButtonText: 'Sí, borrar'
+            }).then((res) => {
+                if(res.isConfirmed) db.collection('motorizados').doc(fId).delete();
+            });
+        }
+
         function saveAliado(e) {
             e.preventDefault();
             const nom = document.getElementById('aliado-nombre').value.trim();
-            const usr = document.getElementById('aliado-usuario').value.trim(); // NUEVO CAMPO
-            const pinVal = document.getElementById('aliado-pin').value.trim();
-            const tlf = document.getElementById('aliado-telefono').value;
-            const dir = document.getElementById('aliado-direccion').value;
+            const pin = document.getElementById('aliado-pin').value.trim();
+            const tlf = document.getElementById('aliado-telefono').value.trim();
+            const dir = document.getElementById('aliado-direccion').value.trim();
 
             if (editAliadoId !== null) {
-                db.collection('aliados').doc(editAliadoId).update({ nombre: nom, usuario: usr, pin: pinVal, telefono: tlf, direccion: dir })
+                db.collection('aliados').doc(editAliadoId).update({ nombre: nom, pin: pin, telefono: tlf, direccion: dir })
                 .then(() => {
                     editAliadoId = null;
-                    document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop"></i> Registro Comercial Aliado`;
-                    document.getElementById('btn-submit-aliado').innerHTML = `Guardar Comercio`;
+                    document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado`;
+                    document.getElementById('btn-submit-aliado').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Comercio`;
                     document.getElementById('form-aliado').reset();
-                    Swal.fire("Completado", "Aliado comercial modificado.", "success");
+                    Swal.fire("Actualizado", "Comercio aliado actualizado en la nube.", "success");
                 });
             } else {
-                db.collection('aliados').add({ id: Date.now(), nombre: nom, usuario: usr, pin: pinVal, telefono: tlf, direccion: dir })
+                db.collection('aliados').add({ nombre: nom, pin: pin, telefono: tlf, direccion: dir, creado: Date.now() })
                 .then(() => {
                     document.getElementById('form-aliado').reset();
-                    Swal.fire("Perfecto", "Comercio aliado agregado con usuario personalizado.", "success");
+                    Swal.fire("Registrado", "Comercio aliado añadido de manera exitosa.", "success");
                 });
             }
         }
@@ -1078,14 +1863,16 @@
         function renderAliados() {
             const tbody = document.getElementById('tabla-aliados-body');
             tbody.innerHTML = '';
-            if(aliados.length === 0) return;
-            
+            if(aliados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">No hay aliados comerciales registrados.</td></tr>`;
+                return;
+            }
             aliados.forEach(a => {
                 tbody.innerHTML += `
                     <tr>
-                        <td class="text-bold">${a.nombre}</td>
-                        <td style="color:#2563eb; font-weight:bold;">${a.usuario || a.nombre}</td>
+                        <td class="text-bold">${a.nombre}<br><span class="text-sub">PIN: ${a.pin}</span></td>
                         <td>${a.telefono}</td>
+                        <td>${a.direccion}</td>
                         <td>
                             <div class="action-cell">
                                 <button type="button" class="action-btn" onclick="editAliado('${a.firestoreId}')">✏️</button>
@@ -1101,107 +1888,32 @@
             const a = aliados.find(item => item.firestoreId === fId);
             if (!a) return;
             editAliadoId = fId;
-            document.getElementById('form-aliado-title').innerHTML = `✏️ Editar Aliado`;
-            document.getElementById('btn-submit-aliado').innerHTML = `Actualizar`;
+            document.getElementById('form-aliado-title').innerHTML = `✏️ Editar Comercio Aliado`;
+            document.getElementById('btn-submit-aliado').innerHTML = `Actualizar Comercio`;
             document.getElementById('aliado-nombre').value = a.nombre;
-            document.getElementById('aliado-usuario').value = a.usuario || "";
-            document.getElementById('aliado-pin').value = a.pin || "";
+            document.getElementById('aliado-pin').value = a.pin;
             document.getElementById('aliado-telefono').value = a.telefono;
             document.getElementById('aliado-direccion').value = a.direccion;
         }
 
         function deleteAliado(fId) {
-            Swal.fire({ title: '¿Remover Aliado?', icon: 'warning', showCancelButton: true }).then(r => {
-                if(r.isConfirmed) db.collection('aliados').doc(fId).delete();
+            Swal.fire({
+                title: '¿Eliminar Comercio Aliado?',
+                text: "El comercio perderá el acceso a la plataforma.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6600',
+                confirmButtonText: 'Sí, eliminar'
+            }).then((res) => {
+                if(res.isConfirmed) db.collection('aliados').doc(fId).delete();
             });
         }
 
-        // SYNC FIREBASE (Resumido para ahorrar espacio, incluye carga de menús)
-        function syncCloudData() {
-            db.collection('aliados').onSnapshot(snap => {
-                aliados = []; snap.forEach(doc => aliados.push({ firestoreId: doc.id, ...doc.data() }));
-                renderAliados(); updateSelectDropdowns();
-            });
-            db.collection('motorizados').onSnapshot(snap => {
-                motorizados = []; snap.forEach(doc => motorizados.push({ firestoreId: doc.id, ...doc.data() }));
-                updateSelectDropdowns();
-            });
-            db.collection('pedidos').onSnapshot(snap => {
-                pedidos = []; snap.forEach(doc => pedidos.push({ firestoreId: doc.id, ...doc.data() }));
-                pedidos.sort((a, b) => b.id - a.id);
-                renderPedidosPendientes(); // Vital: Actualiza tabla de confirmación en tiempo real
-                renderPedidosConfirmados();
-            });
-        }
-
-        function renderPedidosConfirmados() {
-            const tbody = document.getElementById('tabla-pedidos-body');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            const confirmados = pedidos.filter(p => p.estatus !== 'pendiente');
-            
-            confirmados.forEach(p => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${p.fecha} <br><span class="text-sub">${p.hora || ''}</span></td>
-                        <td class="text-bold">${p.cliente}</td>
-                        <td>${p.direccion}</td>
-                        <td>${p.aliado}</td>
-                        <td>${p.motorizado}</td>
-                        <td class="text-orange">$${p.costo.toFixed(2)}</td>
-                        <td>
-                           <button type="button" class="action-btn" onclick="editPedidoConfirmado('${p.firestoreId}')">✏️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            document.getElementById('dash-cant-pedidos').innerText = confirmados.length;
-        }
-        
-        function editPedidoConfirmado(fId) {
-            cargarPedidoParaConfirmar(fId);
-            document.getElementById('ped-estatus-actual').value = "confirmado";
-            document.getElementById('form-pedido-title').innerHTML = `✏️ Editando Pedido Confirmado`;
-            const p = pedidos.find(item => item.firestoreId === fId);
-            if(p) {
-                document.getElementById('ped-motorizado').value = p.motorizado;
-                document.getElementById('ped-costo').value = p.costo;
-            }
-        }
-
-        function updateSelectDropdowns() {
-            const pAliado = document.getElementById('ped-aliado');
-            const pMoto = document.getElementById('ped-motorizado');
-            if(pAliado) pAliado.innerHTML = '<option value="">Seleccione un aliado...</option>';
-            if(pMoto) pMoto.innerHTML = '<option value="">Seleccione un motorizado...</option>';
-            aliados.forEach(a => { if(pAliado) pAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`; });
-            motorizados.forEach(m => { if(pMoto) pMoto.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`; });
-        }
-
-        function loadComisionConfig() {
-            db.collection('configuracion').doc('general').get().then(doc => {
-                if (doc.exists && doc.data().comision_motorizado) {
-                    porcComisionMotorizado = doc.data().comision_motorizado;
-                    if(document.getElementById('cfg-comision')) document.getElementById('cfg-comision').value = Math.round(porcComisionMotorizado * 100);
-                }
-            });
-        }
-
-        function saveComisionConfig() {
-            const inputVal = parseFloat(document.getElementById('cfg-comision').value) || 70;
-            db.collection('configuracion').doc('general').set({ comision_motorizado: inputVal / 100 }, {merge:true})
-            .then(() => Swal.fire("Ajuste Guardado", `La comisión global se fijó en ${inputVal}%`, "success"));
-        }
-
-        function getVenezuelaDate() {
-            const now = new Date();
-            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
-            return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
-        }
-        function parseDateVEToISO(dateStr) { return dateStr.includes("-") ? dateStr : dateStr.split("/").reverse().join("-"); }
-        function getVenezuelaTime() { return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date()); }
-
+        // Carga inicial pasiva de datos para evitar fallas en el Login
+        db.collection('aliados').get().then(snapshot => {
+            aliados = [];
+            snapshot.forEach(doc => aliados.push({ firestoreId: doc.id, ...doc.data() }));
+        });
     </script>
 </body>
 </html>
