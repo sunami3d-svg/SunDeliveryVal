@@ -579,6 +579,49 @@
             display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 360px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
         }
         #seccion-vista-previa img { box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 12px; }
+
+        /* NUEVOS ESTILOS SELECTOR DE LOGIN Y PORTAL */
+        .login-toggle-container {
+            display: flex;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .login-toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 8px;
+            color: #64748b;
+            transition: all 0.2s ease;
+        }
+        .login-toggle-btn.active {
+            background: #ff6600;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(255,102,0,0.2);
+        }
+        .portal-header {
+            background: #0f172a;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 12px 12px 0 0;
+        }
+        #portal-aliado-container {
+            display: none;
+            max-width: 500px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
     </style>
 </head>
 <body>
@@ -598,9 +641,50 @@
                 <p><i class="fa-brands fa-facebook" style="color:#ff6600"></i> <strong>Facebook:</strong> SunDeliveryval</p>
             </div>
 
-            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario / Aliado" style="margin-bottom:10px;">
+            <div class="login-toggle-container">
+                <button type="button" id="toggle-admin" class="login-toggle-btn active" onclick="setLoginRole('admin')">ADMINISTRADOR</button>
+                <button type="button" id="toggle-aliado" class="login-toggle-btn" onclick="setLoginRole('aliado')">ALIADO</button>
+            </div>
+
+            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario" style="margin-bottom:10px;">
             <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña">
             <button class="btn-login" onclick="validateLogin()">Entrar al Sistema</button>
+        </div>
+    </div>
+
+    <!-- INTERFAZ COMPLETA DEL PORTAL DE PEDIDOS ALIADOS -->
+    <div id="portal-aliado-container">
+        <div class="portal-header">
+            <i class="fa-solid fa-shop"></i> Portal de Pedidos Aliados - <span id="portal-nombre-aliado"></span>
+        </div>
+        <div style="padding: 20px;">
+            
+            <!-- AVISO DE BIENVENIDA PROFESIONAL -->
+            <div style="background-color: #fff5e6; border-left: 5px solid #ff6600; padding: 15px; margin-bottom: 20px; border-radius: 6px; color: #333; font-size: 0.95rem; line-height: 1.4;">
+                <strong style="color: #ff6600;"><i class="fa-solid fa-circle-info"></i> ¡Bienvenido al Portal de Aliados!</strong><br>
+                Para garantizar un servicio óptimo, recuerde verificar el costo y la zona de entrega con el equipo de <strong>SUNDELIVERY</strong> antes de registrar el pedido.
+            </div>
+
+            <form id="form-portal-aliado" onsubmit="processPortalPedido(event)" autocomplete="off">
+                <div class="form-group">
+                    <label>Nombre del Cliente</label>
+                    <input type="text" id="port-nombre" placeholder="Nombre del destinatario" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono Cliente</label>
+                    <input type="text" id="port-telefono" placeholder="Ej: 04121112233" required>
+                </div>
+                <div class="form-group">
+                    <label>Dirección de Entrega</label>
+                    <input type="text" id="port-direccion" placeholder="Urb, Calle, Edificio/Casa" required>
+                </div>
+                <div class="form-group">
+                    <label>Detalles del Paquete / Pedido</label>
+                    <textarea id="port-detalles" rows="3" placeholder="Especificaciones, productos, etc." required></textarea>
+                </div>
+                <button type="submit" class="btn-submit"><i class="fa-solid fa-paper-plane"></i> Enviar Pedido a Central</button>
+                <button type="button" class="btn-submit btn-dark-blue" style="margin-top:10px;" onclick="logoutPortal()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
+            </form>
         </div>
     </div>
 
@@ -672,6 +756,25 @@
                     </div>
                     <button type="submit" class="btn-submit" id="btn-submit-pedido"><i class="fa-solid fa-floppy-disk"></i> Guardar Pedido</button>
                 </form>
+            </div>
+
+            <!-- BANDEJA DE PEDIDOS PENDIENTES ENTRANTES DE ALIADOS -->
+            <div class="card-panel v-admin" id="panel-pendientes-aliados-box" style="border-left: 5px solid #ff6600;">
+                <div class="table-section-title" style="margin-bottom:12px;"><i class="fa-solid fa-bell" style="color:#ff6600"></i> 📥 Pedidos Pendientes de Aliados</div>
+                <div class="table-responsive" style="margin-bottom:0;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aliado</th>
+                                <th>Cliente</th>
+                                <th>Dirección</th>
+                                <th>Detalles</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-pendientes-aliados-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -857,7 +960,9 @@
             <div class="card-panel">
                 <div class="panel-title" id="form-aliado-title"><i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado</div>
                 <form id="form-aliado" onsubmit="saveAliado(event)">
-                    <div class="form-group"><label>Nombre Comercial (Será su Usuario)</label><input type="text" id="aliado-nombre" placeholder="Ej. SushiFever" required></div>
+                    <div class="form-group"><label>Nombre Comercial</label><input type="text" id="aliado-nombre" placeholder="Ej. SushiFever" required></div>
+                    <!-- CAMPO DE USUARIO DE INGRESO EXCLUSIVO REQUERIDO -->
+                    <div class="form-group"><label>Usuario para Login</label><input type="text" id="aliado-usuario" placeholder="Ej. sushifever_val" required></div>
                     <div class="form-group"><label>PIN / Contraseña de Ingreso</label><input type="text" id="aliado-pin" placeholder="Ej. 2026" required></div>
                     <div class="form-group"><label>Teléfono</label><input type="text" id="aliado-telefono" required></div>
                     <div class="form-group"><label>Dirección</label><input type="text" id="aliado-direccion" required></div>
@@ -866,7 +971,8 @@
             </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Nombre / Usuario</th><th>Teléfono</th><th>Dirección</th><th>Acciones</th></tr></thead>
+                    <!-- COLUMNA ADICIONAL DE USUARIO PARA REVISIÓN EN LISTA -->
+                    <thead><tr><th>Nombre / Comercial</th><th>Usuario Login</th><th>Teléfono</th><th>Dirección</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-aliados-body"></tbody>
                 </table>
             </div>
@@ -931,11 +1037,32 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        function getVenezuelaDate() {
+            const now = new Date();
+            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
+            return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+        }
+
+        function parseDateVEToISO(dateStr) {
+            if(!dateStr) return "";
+            if(dateStr.includes("-")) return dateStr; 
+            const parts = dateStr.split("/");
+            if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            return dateStr;
+        }
+
+        function getVenezuelaTime() {
+            const now = new Date();
+            return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
+        }
+
         let aliados = [];
         let motorizados = [];
         let pedidos = [];
         let gastos = [];
         let directorioClientes = [];
+        let pedidosPendientesAliados = [];
 
         let selectedPedido = null;
         let editPedidoId = null;
@@ -943,17 +1070,27 @@
         let editAliadoId = null;
         let editClienteDirId = null;
 
-        // Variables de Roles y Configuración
         let usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
-        let porcComisionMotorizado = 0.70; // 70% por defecto
+        let porcComisionMotorizado = 0.70; 
         let cargaInicialPedidos = true;
+        let rolSeleccionadoLogin = "admin"; 
 
-        // EJECUTAR SINCRONIZACIÓN INMEDIATA AL CARGAR EL SCRIPT DE LA APP
-        syncCloudData();
+        function setLoginRole(role) {
+            rolSeleccionadoLogin = role;
+            document.getElementById('toggle-admin').classList.remove('active');
+            document.getElementById('toggle-aliado').classList.remove('active');
+            
+            if (role === 'admin') {
+                document.getElementById('toggle-admin').classList.add('active');
+                document.getElementById('username-input').placeholder = "Nombre de Usuario";
+            } else {
+                document.getElementById('toggle-aliado').classList.add('active');
+                document.getElementById('username-input').placeholder = "Usuario de Aliado Asignado";
+            }
+        }
 
-        // SECCIÓN DE INICIO DE SESIÓN CORREGIDA Y OPTIMIZADA (SOPORTA MAYÚSCULAS Y ESPACIOS)
         function validateLogin() {
-            const userIn = document.getElementById('username-input').value.trim().toLowerCase();
+            const userIn = document.getElementById('username-input').value.trim();
             const pinIn = document.getElementById('pin-input').value.trim();
 
             if (!userIn || !pinIn) {
@@ -961,21 +1098,56 @@
                 return;
             }
 
-            // Acceso de Dueño / Administrador Principal
-            if (userIn === 'admin' && pinIn === '1987') { 
-                usuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
-                arrancarAplicacion();
-            } else {
-                // Validación Dinámica con total tolerancia a mayúsculas, minúsculas y espacios
-                const aliadoExiste = aliados.find(a => a.nombre.trim().toLowerCase() === userIn);
-                
-                if (aliadoExiste && String(aliadoExiste.pin).trim() === pinIn) { 
-                    usuarioActual = { username: aliadoExiste.nombre, rol: "aliado", aliadoComercial: aliadoExiste.nombre };
+            if (rolSeleccionadoLogin === 'admin') {
+                if (userIn.toLowerCase() === 'admin' && pinIn === '1987') { 
+                    usuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
                     arrancarAplicacion();
                 } else {
-                    Swal.fire("Error de Acceso", "Usuario o PIN de aliado incorrectos o base de datos actualizándose.", "error");
+                    Swal.fire("Error de Acceso", "Usuario o PIN de administrador incorrectos.", "error");
+                }
+            } else {
+                if (typeof aliados === 'undefined' || !aliados) {
+                    Swal.fire("Error de Sistema", "La lista de aliados no se ha cargado desde la base de datos. Espera un segundo o recarga la página.", "error");
+                    return;
+                }
+
+                const aliadoExiste = aliados.find(a => {
+                    const campoUsuario = a.usuario || a.usuarioLogin || a.username;
+                    return campoUsuario && campoUsuario.toString().toLowerCase() === userIn.toLowerCase();
+                });
+                
+                if (aliadoExiste) {
+                    const pinRegistrado = aliadoExiste.pin || aliadoExiste.contrasena || aliadoExiste.pinIn;
+                    
+                    if (String(pinRegistrado) === pinIn) {
+                        const nombreAliado = aliadoExiste.nombre || aliadoExiste.nombreComercial || "Aliado";
+                        usuarioActual = { username: nombreAliado, rol: "aliado", aliadoComercial: nombreAliado };
+                        
+                        if (typeof arrancarPortalAliado === 'function') {
+                            arrancarPortalAliado();
+                        } else {
+                            Swal.fire("Portal no Activado", "El login es correcto, pero la función 'arrancarPortalAliado' no está definida aún en el script de tu app.", "warning");
+                        }
+                    } else {
+                        Swal.fire("Error de Acceso", "El PIN introducido es incorrecto.", "error");
+                    }
+                } else {
+                    Swal.fire("Error de Acceso", "El usuario de aliado no coincide con ningún registro.", "error");
                 }
             }
+        }
+
+        function arrancarPortalAliado() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('portal-aliado-container').style.display = 'block';
+            document.getElementById('portal-nombre-aliado').innerText = usuarioActual.aliadoComercial;
+            syncCloudData();
+        }
+
+        function logoutPortal() {
+            document.getElementById('portal-aliado-container').style.display = 'none';
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('form-portal-aliado').reset();
         }
 
         function arrancarAplicacion() {
@@ -988,7 +1160,6 @@
             document.getElementById('invoice-fecha-desde').value = hoyISO;
             document.getElementById('invoice-fecha-hasta').value = hoyISO;
 
-            // Ajustar UI según Rol
             const badge = document.getElementById('badge-rol');
             badge.innerText = usuarioActual.rol.toUpperCase();
             
@@ -1002,6 +1173,7 @@
                 document.getElementById('container-select-aliado').style.display = 'block';
             }
 
+            syncCloudData();
             initRealTimeListener();
             loadComisionConfig();
             
@@ -1047,6 +1219,8 @@
                 snapshot.docChanges().forEach(change => {
                     if (change.type === "added" && !cargaInicialPedidos) {
                         const pedidoData = change.doc.data();
+                        if (pedidoData.pendiente_aprobacion) return;
+
                         if (usuarioActual.rol === 'admin' || (usuarioActual.rol === 'aliado' && pedidoData.aliado === usuarioActual.aliadoComercial)) {
                             reproducirNotificacion();
                             mostrarNotificacionFlotante(pedidoData);
@@ -1109,6 +1283,7 @@
             const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
 
             const pedidosFiltrados = pedidos.filter(p => {
+                if (p.pendiente_aprobacion) return false; 
                 const pedidoFechaISO = parseDateVEToISO(p.fecha);
                 if (p.motorizado !== nomMoto) return false;
                 if (pedidoFechaISO < fDesde || pedidoFechaISO > fHasta) return false;
@@ -1212,9 +1387,134 @@
 
             db.collection('pedidos').onSnapshot(snapshot => {
                 pedidos = [];
-                snapshot.forEach(doc => pedidos.push({ firestoreId: doc.id, ...doc.data() }));
+                pedidosPendientesAliados = []; 
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.pendiente_aprobacion === true) {
+                        pedidosPendientesAliados.push({ firestoreId: doc.id, ...data });
+                    } else {
+                        pedidos.push({ firestoreId: doc.id, ...data });
+                    }
+                });
+                
                 pedidos.sort((a, b) => b.id - a.id);
                 renderPedidos();
+                renderPedidosPendientesAliadosTable(); 
+            });
+        }
+
+        function renderPedidosPendientesAliadosTable() {
+            const tbody = document.getElementById('tabla-pendientes-aliados-body');
+            const panelBox = document.getElementById('panel-pendientes-aliados-box');
+            
+            if (usuarioActual.rol !== 'admin') return;
+            
+            tbody.innerHTML = '';
+            if (pedidosPendientesAliados.length === 0) {
+                panelBox.style.display = "none";
+                return;
+            }
+            
+            panelBox.style.display = "block";
+            pedidosPendientesAliados.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-bold" style="color: #ff6600;">${p.aliado}</td>
+                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                        <td>${p.direccion}</td>
+                        <td>${p.detalles}</td>
+                        <td>
+                            <button type="button" class="btn-submit" style="padding:6px 10px; font-size:0.78rem; width:auto; background:#ff6600;" onclick="cargarPedidoPendienteAlFormulario('${p.firestoreId}')">
+                                <i class="fa-solid fa-bolt"></i> Procesar Orden
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function cargarPedidoPendienteAlFormulario(fId) {
+            const p = pedidosPendientesAliados.find(item => item.firestoreId === fId);
+            if (!p) return;
+            
+            document.getElementById('ped-nombre').value = p.cliente;
+            document.getElementById('ped-telefono').value = p.telefono;
+            document.getElementById('ped-direccion').value = p.direccion;
+            document.getElementById('ped-aliado').value = p.aliado;
+            document.getElementById('ped-detalles').value = p.detalles;
+            
+            document.getElementById('ped-costo').value = "";
+            document.getElementById('ped-motorizado').value = "";
+            
+            editPedidoId = "PENDIENTE_" + fId; 
+            
+            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Procesando Pedido de Aliado [${p.aliado}]`;
+            
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'Datos cargados. Complete motorizado y costo.',
+                showConfirmButton: false,
+                timer: 3500
+            });
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function processPortalPedido(e) {
+            e.preventDefault();
+            const clientName = document.getElementById('port-nombre').value.trim();
+            const clientPhone = document.getElementById('port-telefono').value.trim();
+            const clientDir = document.getElementById('port-direccion').value.trim();
+            const detailText = document.getElementById('port-detalles').value.trim();
+            
+            const numericId = Date.now();
+            const nowVE = new Date();
+            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(nowVE);
+            const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}/${parts.find(p => p.type === 'month').value}/${parts.find(p => p.type === 'year').value}`;
+
+            const pedidoPreRegistro = {
+                id: numericId,
+                fecha: fechaFormatSalida,
+                hora: getVenezuelaTime(),
+                cliente: clientName,
+                telefono: clientPhone,
+                direccion: clientDir,
+                aliado: usuarioActual.aliadoComercial,
+                motorizado: "",
+                costo: 0,
+                detalles: detailText,
+                pendiente_aprobacion: true 
+            };
+
+            Swal.fire({ title: 'Sincronizando con central...', didOpen: () => { Swal.showLoading(); } });
+
+            db.collection('pedidos').add(pedidoPreRegistro).then(() => {
+                Swal.close();
+                document.getElementById('form-portal-aliado').reset();
+                
+                const msgCentralAdmin = encodeURIComponent(
+                    `*📌 NOTIFICACIÓN DE PORTAL DE ALIADOS*\n\n` +
+                    `El aliado comercial *${pedidoPreRegistro.aliado}* ha generado una nueva solicitud de despacho en la plataforma.\n\n` +
+                    `👤 *Cliente:* ${pedidoPreRegistro.cliente}\n` +
+                    `📞 *Teléfono:* +58 ${pedidoPreRegistro.telefono}\n` +
+                    `📍 *Dirección de Entrega:* ${pedidoPreRegistro.direccion}\n` +
+                    `📦 *Detalle del Paquete:* ${pedidoPreRegistro.detalles}\n\n` +
+                    `⚠️ *Acción:* Por favor, ingrese al panel de administración central para asignar la unidad de motorizado y fijar la tarifa de delivery correspondiente.`
+                );
+
+                Swal.fire({
+                    title: "¡Solicitud Enviada!",
+                    text: "Su pedido ha sido indexado. Presione el botón para enviar la notificación a despacho central vía WhatsApp.",
+                    icon: "success",
+                    confirmButtonText: "Notificar por WhatsApp",
+                    confirmButtonColor: "#25d366"
+                }).then(() => {
+                    window.open(`https://api.whatsapp.com/send?phone=584244529892&text=${msgCentralAdmin}`, '_blank');
+                });
             });
         }
 
@@ -1276,7 +1576,6 @@
             const dir = document.getElementById('cli-direccion').value.trim();
 
             if (editClienteDirId !== null) {
-                // CORREGIDO: Se cambia 'telephone' por 'telefono' para mantener consistencia y evitar fallos de persistencia
                 db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
                 .then(() => {
                     editClienteDirId = null;
@@ -1375,7 +1674,7 @@
             gastos.forEach(g => {
                 container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
             });
-            renderPedidos();
+            renderPedidos(); 
         }
 
         function deleteGasto(id) {
@@ -1401,6 +1700,7 @@
             const fMotorizado = usuarioActual.rol === 'aliado' ? "" : document.getElementById('filtro-motorizado-busqueda').value;
 
             const pedidosFiltrados = pedidos.filter(p => {
+                if (p.pendiente_aprobacion) return false; 
                 const pedidoFechaISO = parseDateVEToISO(p.fecha);
                 if (fDesde && pedidoFechaISO < fDesde) return false;
                 if (fHasta && pedidoFechaISO > fHasta) return false;
@@ -1483,7 +1783,12 @@
                 db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
             }
 
-            if (editPedidoId !== null) {
+            let pendingReferenceId = null;
+            if (editPedidoId && editPedidoId.startsWith("PENDIENTE_")) {
+                pendingReferenceId = editPedidoId.replace("PENDIENTE_", "");
+            }
+
+            if (editPedidoId !== null && !pendingReferenceId) {
                 db.collection('pedidos').doc(editPedidoId).update({
                     cliente: clientName, telefono: clientPhone, direccion: clientDir,
                     aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
@@ -1500,15 +1805,20 @@
                 const nowVE = new Date();
                 const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
                 const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(nowVE);
-                const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'year').value}`;
+                const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}/${parts.find(p => p.type === 'month').value}/${parts.find(p => p.type === 'year').value}`;
 
                 const nuevoPedido = {
                     id: numericId,
-                    fecha: fechaFormatSalida.split('-').reverse().join('/'),
+                    fecha: fechaFormatSalida,
                     hora: getVenezuelaTime(),
                     cliente: clientName, telefono: clientPhone, direccion: clientDir,
                     aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
                 };
+
+                if (pendingReferenceId) {
+                    db.collection('pedidos').doc(pendingReferenceId).delete();
+                    editPedidoId = null;
+                }
 
                 db.collection('pedidos').add(nuevoPedido).then(() => {
                     const dataAliado = aliados.find(a => a.nombre === nuevoPedido.aliado) || { telefono: "" };
@@ -1553,6 +1863,8 @@
                     document.getElementById('wa-btn-motorizado').href = `https://api.whatsapp.com/send?phone=${dataMoto.telefono}&text=${msgMotorizado}`;
 
                     document.getElementById('form-pedido').reset();
+                    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+                    document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
                     document.getElementById('whatsapp-modal').classList.add('active');
                 });
             }
@@ -1625,7 +1937,6 @@
             });
         }
 
-        UX_REPARTIDOR = null;
         function saveMotorizado(e) {
             e.preventDefault();
             const nom = document.getElementById('moto-nombre').value;
@@ -1673,13 +1984,14 @@
             const tbody = document.getElementById('tabla-aliados-body');
             tbody.innerHTML = '';
             if(aliados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">No hay aliados comerciales registrados.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay aliados comerciales registrados.</td></tr>`;
                 return;
             }
             aliados.forEach(a => {
                 tbody.innerHTML += `
                     <tr>
                         <td class="text-bold">${a.nombre}</td>
+                        <td style="color:#64748b; font-weight:600;">${a.usuario || 'No asignado'}</td>
                         <td>${a.telefono}</td>
                         <td>${a.direccion}</td>
                         <td>
@@ -1696,12 +2008,13 @@
         function saveAliado(e) {
             e.preventDefault();
             const nom = document.getElementById('aliado-nombre').value.trim();
+            const usrVal = document.getElementById('aliado-usuario').value.trim(); 
             const pinVal = document.getElementById('aliado-pin').value.trim();
             const tlf = document.getElementById('aliado-telefono').value;
             const dir = document.getElementById('aliado-direccion').value;
 
             if (editAliadoId !== null) {
-                db.collection('aliados').doc(editAliadoId).update({ nombre: nom, pin: pinVal, telefono: tlf, direccion: dir })
+                db.collection('aliados').doc(editAliadoId).update({ nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
                 .then(() => {
                     editAliadoId = null;
                     document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado`;
@@ -1710,10 +2023,10 @@
                     Swal.fire("Completado", "Aliado comercial modificado.", "success");
                 });
             } else {
-                db.collection('aliados').add({ id: Date.now(), nombre: nom, pin: pinVal, telefono: tlf, direccion: dir })
+                db.collection('aliados').add({ id: Date.now(), nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
                 .then(() => {
                     document.getElementById('form-aliado').reset();
-                    Swal.fire("Perfecto", "Comercio aliado agregado con su respectiva clave.", "success");
+                    Swal.fire("Perfecto", "Comercio aliado agregado con su respectiva clave y usuario.", "success");
                 });
             }
         }
@@ -1725,6 +2038,7 @@
             document.getElementById('form-aliado-title').innerHTML = `✏️ Editar Aliado Comercial`;
             document.getElementById('btn-submit-aliado').innerHTML = `Actualizar`;
             document.getElementById('aliado-nombre').value = a.nombre;
+            document.getElementById('aliado-usuario').value = a.usuario || ""; 
             document.getElementById('aliado-pin').value = a.pin || "";
             document.getElementById('aliado-telefono').value = a.telefono;
             document.getElementById('aliado-direccion').value = a.direccion;
@@ -1788,6 +2102,7 @@
             const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
 
             const pedidosFiltrados = pedidos.filter(p => {
+                if (p.pendiente_aprobacion) return false; 
                 const pedidoFechaISO = parseDateVEToISO(p.fecha);
                 if (nombreAliado !== "TODOS_LOS_ALIADOS" && p.aliado !== nombreAliado) return false;
                 if (pedidoFechaISO < fechaDesde || pedidoFechaISO > fechaHasta) return false;
@@ -1863,39 +2178,7 @@
             const usd = parseFloat(document.getElementById('modal-monto').value) || 0;
             document.getElementById('tkt-tasa-text').innerText = tasa.toFixed(2);
             document.getElementById('tkt-usd-text').innerText = usd.toFixed(2);
-            document.getElementById('tkt-bs-text').innerText = FormatearBs(tasa * usd);
-        }
-
-        function closeReceiptModal() { document.getElementById('receipt-modal').classList.remove('active'); }
-
-        function triggerDownloadJPG() {
-            const area = document.getElementById('print-ticket-area');
-            html2canvas(area, { scale: 3, backgroundColor: '#ffffff' }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Recibo_${selectedPedido.cliente.replace(/\s+/g, '_')}.jpg`;
-                link.href = canvas.toDataURL('image/jpeg', 1.0);
-                link.click();
-            });
-        }
-
-        function getVenezuelaDate() {
-            const now = new Date();
-            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
-            return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
-        }
-
-        function parseDateVEToISO(dateStr) {
-            if(!dateStr) return "";
-            if(dateStr.includes("-")) return dateStr; 
-            const parts = dateStr.split("/");
-            if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            return dateStr;
-        }
-
-        function getVenezuelaTime() {
-            const now = new Date();
-            return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
+            document.getElementById('tkt-bs-text').innerText = FormatearBs(usd * tasa);
         }
     </script>
 </body>
