@@ -1106,7 +1106,7 @@
                     Swal.fire("Error de Acceso", "Usuario o PIN de administrador incorrectos.", "error");
                 }
             } else {
-                if (typeof aliados === 'undefined' || !aliados) {
+                if (typeof aliados === 'undefined' || !aliados || aliados.length === 0) {
                     Swal.fire("Error de Sistema", "La lista de aliados no se ha cargado desde la base de datos. Espera un segundo o recarga la página.", "error");
                     return;
                 }
@@ -1141,7 +1141,6 @@
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('portal-aliado-container').style.display = 'block';
             document.getElementById('portal-nombre-aliado').innerText = usuarioActual.aliadoComercial;
-            syncCloudData();
         }
 
         function logoutPortal() {
@@ -1173,7 +1172,6 @@
                 document.getElementById('container-select-aliado').style.display = 'block';
             }
 
-            syncCloudData();
             initRealTimeListener();
             loadComisionConfig();
             
@@ -1780,7 +1778,7 @@
 
             const existeCliente = directorioClientes.some(c => c.telefono === clientPhone);
             if (!existeCliente && clientPhone && clientName) {
-                db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
+                db.collection('clientes').add({ nombre: clientName, telephone: clientPhone, direccion: clientDir, creado: Date.now() });
             }
 
             let pendingReferenceId = null;
@@ -2180,6 +2178,37 @@
             document.getElementById('tkt-usd-text').innerText = usd.toFixed(2);
             document.getElementById('tkt-bs-text').innerText = FormatearBs(usd * tasa);
         }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').classList.remove('active');
+        }
+
+        function triggerDownloadJPG() {
+            const ticketArea = document.getElementById('print-ticket-area');
+            Swal.fire({
+                title: 'Generando Imagen...',
+                html: 'Espere por favor.',
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            html2canvas(ticketArea, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const link = document.createElement('a');
+                link.href = imgData;
+                const nombreCliente = document.getElementById('tkt-cliente').innerText.replace(/\s+/g, '_') || 'Ticket';
+                link.download = `Ticket_${nombreCliente}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                Swal.close();
+            }).catch(err => {
+                console.error(err);
+                Swal.fire("Error", "No se pudo compilar la captura del ticket.", "error");
+            });
+        }
+
+        // INICIALIZACIÓN GLOBAL DE DATOS (Solución al login de aliados vacíos)
+        syncCloudData();
     </script>
 </body>
 </html>
