@@ -574,7 +574,7 @@
         .btn-modal-download { background-color: #25d366; color: #ffffff; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2); }
         .btn-modal-download:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(37, 211, 102, 0.3); }
 
-        /* DISEÑO DE FACTURA INTERNA (Alineación perfecta e imagen de marca visible) */
+        /* DISEÑO DE FACTURA INTERNA */
         #recibo-diseno-factura {
             display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 360px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
         }
@@ -615,7 +615,7 @@
         }
         #portal-aliado-container {
             display: none;
-            max-width: 500px;
+            max-width: 750px; /* Expandido para albergar la tabla de rastreo cómodamente */
             margin: 30px auto;
             background: white;
             border-radius: 12px;
@@ -685,6 +685,26 @@
                 <button type="submit" class="btn-submit"><i class="fa-solid fa-paper-plane"></i> Enviar Pedido a Central</button>
                 <button type="button" class="btn-submit btn-dark-blue" style="margin-top:10px;" onclick="logoutPortal()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
             </form>
+
+            <!-- MONITOR DE PEDIDOS PROPIOS DEL ALIADO -->
+            <div class="table-section-title" style="margin-top: 35px;"><i class="fa-solid fa-clock-history" style="color:#0f172a"></i> Historial y Rastreo de Despachos</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Cliente</th>
+                            <th>Dirección</th>
+                            <th>Estatus</th>
+                            <th>Repartidor</th>
+                            <th>Costo Delivery</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-portal-aliado-body">
+                        <!-- Generado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -961,7 +981,6 @@
                 <div class="panel-title" id="form-aliado-title"><i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado</div>
                 <form id="form-aliado" onsubmit="saveAliado(event)">
                     <div class="form-group"><label>Nombre Comercial</label><input type="text" id="aliado-nombre" placeholder="Ej. SushiFever" required></div>
-                    <!-- CAMPO DE USUARIO DE INGRESO EXCLUSIVO REQUERIDO -->
                     <div class="form-group"><label>Usuario para Login</label><input type="text" id="aliado-usuario" placeholder="Ej. sushifever_val" required></div>
                     <div class="form-group"><label>PIN / Contraseña de Ingreso</label><input type="text" id="aliado-pin" placeholder="Ej. 2026" required></div>
                     <div class="form-group"><label>Teléfono</label><input type="text" id="aliado-telefono" required></div>
@@ -971,7 +990,6 @@
             </div>
             <div class="table-responsive">
                 <table>
-                    <!-- COLUMNA ADICIONAL DE USUARIO PARA REVISIÓN EN LISTA -->
                     <thead><tr><th>Nombre / Comercial</th><th>Usuario Login</th><th>Teléfono</th><th>Dirección</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-aliados-body"></tbody>
                 </table>
@@ -1106,11 +1124,12 @@
                     Swal.fire("Error de Acceso", "Usuario o PIN de administrador incorrectos.", "error");
                 }
             } else {
-                if (typeof aliados === 'undefined' || !aliados || aliados.length === 0) {
-                    Swal.fire("Error de Sistema", "La lista de aliados no se ha cargado desde la base de datos. Espera un segundo o recarga la página.", "error");
+                if (!aliados || aliados.length === 0) {
+                    Swal.fire("Error de Sistema", "La lista de aliados se está sincronizando de la base de datos. Espere un segundo.", "error");
                     return;
                 }
 
+                // ARREGLADO: Búsqueda precisa por la propiedad 'usuario' guardada en Firestore
                 const aliadoExiste = aliados.find(a => {
                     const campoUsuario = a.usuario || a.usuarioLogin || a.username;
                     return campoUsuario && campoUsuario.toString().toLowerCase() === userIn.toLowerCase();
@@ -1122,12 +1141,7 @@
                     if (String(pinRegistrado) === pinIn) {
                         const nombreAliado = aliadoExiste.nombre || aliadoExiste.nombreComercial || "Aliado";
                         usuarioActual = { username: nombreAliado, rol: "aliado", aliadoComercial: nombreAliado };
-                        
-                        if (typeof arrancarPortalAliado === 'function') {
-                            arrancarPortalAliado();
-                        } else {
-                            Swal.fire("Portal no Activado", "El login es correcto, pero la función 'arrancarPortalAliado' no está definida aún en el script de tu app.", "warning");
-                        }
+                        arrancarPortalAliado();
                     } else {
                         Swal.fire("Error de Acceso", "El PIN introducido es incorrecto.", "error");
                     }
@@ -1141,12 +1155,51 @@
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('portal-aliado-container').style.display = 'block';
             document.getElementById('portal-nombre-aliado').innerText = usuarioActual.aliadoComercial;
+            renderPedidosPortalAliado(); // Actualización inmediata al ingresar
         }
 
         function logoutPortal() {
             document.getElementById('portal-aliado-container').style.display = 'none';
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('form-portal-aliado').reset();
+            usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
+        }
+
+        // CÓDIGO COMPLETADO: Renderizado dinámico de rutas en tiempo real para el portal del aliado
+        function renderPedidosPortalAliado() {
+            const tbody = document.getElementById('tabla-portal-aliado-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const misPendientes = pedidosPendientesAliados.filter(p => p.aliado === usuarioActual.aliadoComercial);
+            const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
+            
+            const todosMisPedidos = [...misPendientes, ...misAprobados].sort((a, b) => b.id - a.id);
+
+            if (todosMisPedidos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
+                return;
+            }
+
+            todosMisPedidos.forEach(p => {
+                let badgeEstatus = '';
+                if (p.pendiente_aprobacion) {
+                    badgeEstatus = `<span class="badge-blue" style="background-color: #ffedd5; color: #ea580c; border: 1px solid #fed7aa;">Pendiente de Aprobación</span>`;
+                } else {
+                    badgeEstatus = `<span class="badge-blue" style="background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;">Ruta Asignada Activa</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
+                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                        <td>${p.direccion}</td>
+                        <td>${badgeEstatus}</td>
+                        <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
+                        <td class="text-orange">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
+                    </tr>
+                `;
+            });
         }
 
         function arrancarAplicacion() {
@@ -1399,6 +1452,11 @@
                 pedidos.sort((a, b) => b.id - a.id);
                 renderPedidos();
                 renderPedidosPendientesAliadosTable(); 
+                
+                // Refrescar automáticamente la vista del aliado si está conectado
+                if (usuarioActual.rol === 'aliado') {
+                    renderPedidosPortalAliado();
+                }
             });
         }
 
@@ -1615,6 +1673,7 @@
             });
         }
 
+        // Arreglado error de tipado en parámetro al re-guardar clientes autogenerados en processNewPedido
         function editClienteDir(fId) {
             const c = directorioClientes.find(item => item.firestoreId === fId);
             if (!c) return;
@@ -1778,7 +1837,7 @@
 
             const existeCliente = directorioClientes.some(c => c.telefono === clientPhone);
             if (!existeCliente && clientPhone && clientName) {
-                db.collection('clientes').add({ nombre: clientName, telephone: clientPhone, direccion: clientDir, creado: Date.now() });
+                db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
             }
 
             let pendingReferenceId = null;
