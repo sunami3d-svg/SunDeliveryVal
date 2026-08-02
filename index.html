@@ -672,12 +672,83 @@
         </div>
     </div>
 
-    <!-- INTERFAZ COMPLETA DEL PORTAL DE PEDIDOS ALIADOS -->
-    <div id="portal-aliado-container">
-        <div class="portal-header">
-            <i class="fa-solid fa-shop"></i> Portal de Pedidos Aliados - <span id="portal-nombre-aliado"></span>
+<!-- INTERFAZ COMPLETA DEL PORTAL DE PEDIDOS ALIADOS -->
+<div id="portal-aliado-container">
+    <div class="portal-header">
+        <i class="fa-solid fa-shop"></i> Portal de Pedidos Aliados - <span id="portal-nombre-aliado"></span>
+    </div>
+    <div style="padding: 20px;">
+        
+        <!-- AVISO DE BIENVENIDA PROFESIONAL -->
+        <div style="background-color: #fff5e6; border-left: 5px solid #ff6600; padding: 15px; margin-bottom: 20px; border-radius: 6px; color: #333; font-size: 0.95rem; line-height: 1.4;">
+            <strong style="color: #ff6600;"><i class="fa-solid fa-circle-info"></i> ¡Bienvenido al Portal de Aliados!</strong><br>
+            Para garantizar un servicio óptimo, recuerde verificar el costo y la zona de entrega con el equipo de <strong>SUNDELIVERY</strong> antes de registrar el pedido.
         </div>
-        <div style="padding: 20px;">
+
+        <form id="form-portal-aliado" onsubmit="processPortalPedido(event)" autocomplete="off">
+            <div class="form-group">
+                <label>Nombre del Cliente</label>
+                <input type="text" id="port-nombre" placeholder="Nombre del destinatario" required>
+            </div>
+            <div class="form-group">
+                <label>Teléfono Cliente</label>
+                <input type="text" id="port-telefono" placeholder="Ej: 04121112233" required>
+            </div>
+            <div class="form-group">
+                <label>Dirección de Entrega</label>
+                <input type="text" id="port-direccion" placeholder="Urb, Calle, Edificio/Casa" required>
+            </div>
+            <div class="form-group">
+                <label>Detalles del Paquete / Pedido</label>
+                <textarea id="port-detalles" rows="3" placeholder="Especificaciones, productos, etc." required></textarea>
+            </div>
+            <button type="submit" class="btn-submit"><i class="fa-solid fa-paper-plane"></i> Enviar Pedido a Central</button>
+            <button type="button" class="btn-submit btn-dark-blue" style="margin-top:10px;" onclick="logoutPortal()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
+        </form>
+
+        <!-- MONITOR DE PEDIDOS PROPIOS DEL ALIADO -->
+        <div class="table-section-title" style="margin-top: 35px;"><i class="fa-solid fa-clock-history" style="color:#0f172a"></i> Historial y Rastreo de Despachos</div>
+        
+        <!-- NUEVO: PANEL DE MÉTRICAS (CONTADOR DE PEDIDOS Y DEUDA DE DELIVERIES) -->
+        <div class="dashboard-grid" style="margin: 15px 0;">
+            <div class="dash-card active-val">
+                <div class="title">Total Pedidos</div>
+                <div class="value" id="aliado-contador-pedidos">0</div>
+            </div>
+            <div class="dash-card neto-neg">
+                <div class="title">Monto por Cancelar ($)</div>
+                <div class="value" id="aliado-total-deuda">$0.00</div>
+            </div>
+        </div>
+
+        <!-- NUEVO: BUSCADOR EN TIEMPO REAL -->
+        <div class="card-panel" style="margin-bottom: 15px; padding: 12px 15px;">
+            <div class="form-group" style="margin: 0;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block;"><i class="fa-solid fa-magnifying-glass" style="color:#ff6600"></i> Buscar en mis despachos</label>
+                <input type="text" id="filtro-pedidos-aliado" onkeyup="filtrarTablaAliado()" placeholder="Escriba cliente, dirección, estatus o repartidor para filtrar...">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Cliente</th>
+                        <th>Dirección</th>
+                        <th>Estatus</th>
+                        <th>Repartidor</th>
+                        <th>Costo Delivery</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-portal-aliado-body">
+                    <!-- Generado dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
             
             <!-- AVISO DE BIENVENIDA PROFESIONAL -->
             <div style="background-color: #fff5e6; border-left: 5px solid #ff6600; padding: 15px; margin-bottom: 20px; border-radius: 6px; color: #333; font-size: 0.95rem; line-height: 1.4;">
@@ -819,9 +890,24 @@
         </div>
 
         <div id="view-gestion" class="view-section">
-            <div class="dashboard-grid">
-                <div class="dash-card"><div class="title">Órdenes</div><div class="value" id="dash-cant-pedidos">0</div></div>
-                <div class="dash-card active-val"><div class="title">Ingreso USD</div><div class="value" id="dash-ingreso-usd">$0.00</div></div>
+<!-- METRICAS Y CONTADORES DEL ALIADO -->
+<div class="dashboard-grid" style="margin: 20px 0;">
+    <div class="dash-card active-val">
+        <span class="title">Total Pedidos</span>
+        <span class="value" id="aliado-contador-pedidos">0</span>
+    </div>
+    <div class="dash-card neto-neg">
+        <span class="title">Saldo Pendiente ($)</span>
+        <span class="value" id="aliado-total-deuda">$0.00</span>
+    </div>
+</div>
+
+<!-- BARRA DE BÚSQUEDA Y FILTRO -->
+<div class="form-group" style="margin-bottom: 20px;">
+    <label for="filtro-pedidos-aliado"><i class="fa-solid fa-magnifying-glass" style="margin-right: 6px;"></i>Buscar Pedido</label>
+    <input type="text" id="filtro-pedidos-aliado" onkeyup="filtrarTablaAliado()" placeholder="Buscar por cliente, dirección, estado o # id...">
+</div>
+
                 <div class="dash-card v-admin"><div class="title">Gastos</div><div class="value" id="dash-gasto-usd" style="color:#ef4444;">$0.00</div></div>
                 <div class="dash-card neto-pos v-admin" id="dash-neto-box"><div class="title">Balance</div><div class="value" id="dash-balance-neto">$0.00</div></div>
             </div>
