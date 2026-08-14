@@ -756,6 +756,10 @@
                 <div class="panel-title" id="form-pedido-title"><i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido</div>
                 <form id="form-pedido" onsubmit="processNewPedido(event)" autocomplete="off">
                     <div class="form-group">
+                        <label for="ped-fecha"><i class="fa-solid fa-calendar-days" style="color:#ff6600;"></i> Fecha del Pedido</label>
+                        <input type="date" id="ped-fecha" required>
+                    </div>
+                    <div class="form-group">
                         <label>Teléfono Cliente</label>
                         <input type="text" id="ped-telefono" placeholder="Escriba teléfono para buscar..." oninput="triggerAutocomplete('telefono')" required>
                         <div id="sug-telefono" class="autocomplete-suggestions" style="display:none;"></div>
