@@ -1,1213 +1,1276 @@
-        function getVenezuelaDate() {
-            const now = new Date();
-            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
-            return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+Function getVenezuelaDate() {
+    Const now = new Date();
+    Const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
+    Const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(now);
+    Return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
+}
+
+// Convierte YYYY-MM-DD (del input date) a DD/MM/YYYY (para guardar/mostrar)
+Function formatISOToVE(isoDateStr) {
+    If (!isoDateStr) return "";
+    Const parts = isoDateStr.split("-");
+    If (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    Return isoDateStr;
+}
+
+Function parseDateVEToISO(dateStr) {
+    If(!dateStr) return "";
+    If(dateStr.includes("-")) return dateStr; 
+    Const parts = dateStr.split("/");
+    If(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    Return dateStr;
+}
+
+Function getVenezuelaTime() {
+    Const now = new Date();
+    Return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
+}
+
+Let aliados = [];
+let motorizados = [];
+let pedidos = [];
+let gastos = [];
+let directorioClientes = [];
+let pedidosPendientesAliados = [];
+
+Let selectedPedido = null;
+let editPedidoId = null;
+let editMotoId = null;
+let editAliadoId = null;
+let editClienteDirId = null;
+
+Let usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
+let porcComisionMotorizado = 0.70; 
+Let cargaInicialPedidos = true;
+let rolSeleccionadoLogin = "admin"; 
+
+Function setLoginRole(role) {
+    RolSeleccionadoLogin = role;
+    Document.getElementById('toggle-admin').classList.remove('active');
+    Document.getElementById('toggle-aliado').classList.remove('active');
+    
+    If (role === 'admin') {
+        Document.getElementById('toggle-admin').classList.add('active');
+        Document.getElementById('username-input').placeholder = "Nombre de Usuario";
+    } else {
+        Document.getElementById('toggle-aliado').classList.add('active');
+        Document.getElementById('username-input').placeholder = "Usuario de Aliado Asignado";
+    }
+}
+
+Function validateLogin() {
+    Const userIn = document.getElementById('username-input').value.trim();
+    Const pinIn = document.getElementById('pin-input').value.trim();
+
+    If (!userIn || !pinIn) {
+        Swal.fire("Campos vacíos", "Por favor ingresa usuario y contraseña.", "warning");
+        Return;
+    }
+
+    If (rolSeleccionadoLogin === 'admin') {
+        If (userIn.toLowerCase() === 'admin' && pinIn === '1987') { 
+            UsuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
+            ArrancarAplicacion();
+        } else {
+            Swal.fire("Error de Acceso", "Usuario o PIN de administrador incorrectos.", "error");
+        }
+    } else {
+        If (!aliados || aliados.length === 0) {
+            Swal.fire("Error de Sistema", "La lista de aliados se está sincronizando de la base de datos. Espere un segundo.", "error");
+            Return;
         }
 
-        function parseDateVEToISO(dateStr) {
-            if(!dateStr) return "";
-            if(dateStr.includes("-")) return dateStr; 
-            const parts = dateStr.split("/");
-            if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            return dateStr;
-        }
-
-        function getVenezuelaTime() {
-            const now = new Date();
-            return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
-        }
-
-        let aliados = [];
-        let motorizados = [];
-        let pedidos = [];
-        let gastos = [];
-        let directorioClientes = [];
-        let pedidosPendientesAliados = [];
-
-        let selectedPedido = null;
-        let editPedidoId = null;
-        let editMotoId = null;
-        let editAliadoId = null;
-        let editClienteDirId = null;
-
-        let usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
-        let porcComisionMotorizado = 0.70; 
-        let cargaInicialPedidos = true;
-        let rolSeleccionadoLogin = "admin"; 
-
-        function setLoginRole(role) {
-            rolSeleccionadoLogin = role;
-            document.getElementById('toggle-admin').classList.remove('active');
-            document.getElementById('toggle-aliado').classList.remove('active');
+        Const aliadoExiste = aliados.find(a => {
+            Const campoUsuario = a.usuario || a.usuarioLogin || a.username;
+            Return campoUsuario && campoUsuario.toString().toLowerCase() === userIn.toLowerCase();
+        });
+        
+        If (aliadoExiste) {
+            Const pinRegistrado = aliadoExiste.pin || aliadoExiste.contrasena || aliadoExiste.pinIn;
             
-            if (role === 'admin') {
-                document.getElementById('toggle-admin').classList.add('active');
-                document.getElementById('username-input').placeholder = "Nombre de Usuario";
+            If (String(pinRegistrado) === pinIn) {
+                Const nombreAliado = aliadoExiste.nombre || aliadoExiste.nombreComercial || "Aliado";
+                UsuarioActual = { username: nombreAliado, rol: "aliado", aliadoComercial: nombreAliado };
+                ArrancarPortalAliado();
             } else {
-                document.getElementById('toggle-aliado').classList.add('active');
-                document.getElementById('username-input').placeholder = "Usuario de Aliado Asignado";
+                Swal.fire("Error de Acceso", "El PIN introducido es incorrecto.", "error");
             }
+        } else {
+            Swal.fire("Error de Acceso", "El usuario de aliado no coincide con ningún registro.", "error");
+        }
+    }
+}
+
+Function arrancarPortalAliado() {
+    Document.getElementById('login-view').classList.add('hidden');
+    Document.getElementById('portal-aliado-container').style.display = 'block';
+    Document.getElementById('portal-nombre-aliado').innerText = usuarioActual.aliadoComercial;
+    
+    // Inicializar input de fecha en el portal con la fecha de hoy
+    Const elFechaPort = document.getElementById('port-fecha');
+    If (elFechaPort) elFechaPort.value = getVenezuelaDate();
+
+    RenderPedidosPortalAliado();
+}
+
+Function logoutPortal() {
+    Document.getElementById('portal-aliado-container').style.display = 'none';
+    Document.getElementById('login-view').classList.remove('hidden');
+    Document.getElementById('form-portal-aliado').reset();
+    UsuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
+}
+
+Function renderPedidosPortalAliado() {
+    Const tbody = document.getElementById('tabla-portal-aliado-body');
+    If (!tbody) return;
+    Tbody.innerHTML = '';
+
+    Const misPendientes = pedidosPendientesAliados.filter(p => p.aliado === usuarioActual.aliadoComercial);
+    Const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
+    
+    Const todosMisPedidos = [...misPendientes, ...misAprobados].sort((a, b) => b.id - a.id);
+
+    If (todosMisPedidos.length === 0) {
+        Tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
+        Return;
+    }
+
+    TodosMisPedidos.forEach(p => {
+        Let badgeEstatus = '';
+        If (p.pendiente_aprobacion) {
+            BadgeEstatus = `<span class="badge-blue" style="background-color: #ffedd5; color: #ea580c; border: 1px solid #fed7aa;">Pendiente de Aprobación</span>`;
+        } else {
+            BadgeEstatus = `<span class="badge-blue" style="background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;">Ruta Asignada Activa</span>`;
         }
 
-        function validateLogin() {
-            const userIn = document.getElementById('username-input').value.trim();
-            const pinIn = document.getElementById('pin-input').value.trim();
+        Tbody.innerHTML += `
+            <tr>
+                <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
+                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                <td>${p.direccion}</td>
+                <td>${badgeEstatus}</td>
+                <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
+                <td class="text-orange">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
+            </tr>
+        `;
+    });
+}
 
-            if (!userIn || !pinIn) {
-                Swal.fire("Campos vacíos", "Por favor ingresa usuario y contraseña.", "warning");
-                return;
-            }
+Function arrancarAplicacion() {
+    Document.getElementById('login-view').classList.add('hidden');
+    Document.getElementById('app-container').classList.add('active');
+    
+    Const hoyISO = getVenezuelaDate();
+    Document.getElementById('filtro-fecha-desde').value = hoyISO;
+    Document.getElementById('filtro-fecha-hasta').value = hoyISO;
+    Document.getElementById('invoice-fecha-desde').value = hoyISO;
+    Document.getElementById('invoice-fecha-hasta').value = hoyISO;
 
-            if (rolSeleccionadoLogin === 'admin') {
-                if (userIn.toLowerCase() === 'admin' && pinIn === '1987') { 
-                    usuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
-                    arrancarAplicacion();
-                } else {
-                    Swal.fire("Error de Acceso", "Usuario o PIN de administrador incorrectos.", "error");
+    // Inicializar input de fecha del formulario de pedidos
+    Const elFechaPed = document.getElementById('ped-fecha');
+    If (elFechaPed) elFechaPed.value = hoyISO;
+
+    Const badge = document.getElementById('badge-rol');
+    Badge.innerText = usuarioActual.rol.toUpperCase();
+    
+    If (usuarioActual.rol === 'aliado') {
+        Document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'none');
+        Document.getElementById('filtro-aliado-box').style.display = 'none';
+        Document.getElementById('container-select-aliado').style.display = 'none';
+    } else {
+        Document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'block');
+        Document.getElementById('filtro-aliado-box').style.display = 'block';
+        Document.getElementById('container-select-aliado').style.display = 'block';
+    }
+
+    InitRealTimeListener();
+    LoadComisionConfig();
+    
+    Document.addEventListener("click", function (e) {
+        If (!e.target.closest('.form-group')) {
+            Document.getElementById("sug-telefono").style.display = "none";
+            Document.getElementById("sug-nombre").style.display = "none";
+        }
+    });
+}
+
+Function switchTab(tabId) {
+    Document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    Document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+    Document.getElementById(`tab-${tabId}`).classList.add('active');
+    Document.getElementById(`view-${tabId}`).classList.add('active');
+}
+
+Function loadComisionConfig() {
+    Db.collection('configuracion').doc('general').get().then(doc => {
+        If (doc.exists && doc.data().comision_motorizado) {
+            PorcComisionMotorizado = doc.data().comision_motorizado;
+            Document.getElementById('cfg-comision').value = Math.round(porcComisionMotorizado * 100);
+        } else {
+            Db.collection('configuracion').doc('general').set({ comision_motorizado: 0.70 });
+        }
+    });
+}
+
+Function saveComisionConfig() {
+    Const inputVal = parseFloat(document.getElementById('cfg-comision').value) || 70;
+    Const decimalVal = inputVal / 100;
+    Db.collection('configuracion').doc('general').update({ comision_motorizado: decimalVal })
+    .then(() => {
+        PorcComisionMotorizado = decimalVal;
+        Swal.fire("Ajuste Guardado", `La comisión global se fijó en ${inputVal}%`, "success");
+        RenderPedidos();
+    });
+}
+
+Function initRealTimeListener() {
+    Db.collection('pedidos').onSnapshot(snapshot => {
+        Snapshot.docChanges().forEach(change => {
+            If (change.type === "added" && !cargaInicialPedidos) {
+                Const pedidoData = change.doc.data();
+                If (pedidoData.pendiente_aprobacion) return;
+
+                If (usuarioActual.rol === 'admin' || (usuarioActual.rol === 'aliado' && pedidoData.aliado === usuarioActual.aliadoComercial)) {
+                    ReproducirNotificacion();
+                    MostrarNotificacionFlotante(pedidoData);
                 }
+            }
+        });
+        CargaInicialPedidos = false;
+    });
+}
+
+Function reproducirNotificacion() {
+    Const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav");
+    Audio.play().catch(() => {});
+}
+
+Function mostrarNotificacionFlotante(pedido) {
+    Const cont = document.getElementById('contenedor-alertas-flotantes');
+    Const alertBox = document.createElement('div');
+    AlertBox.className = 'alerta-notificacion-rt';
+    AlertBox.innerHTML = `
+        <div style="font-weight:800; color:#ff6600; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> ¡NUEVO PEDIDO ENTRANTE!</div>
+        <div style="font-size:0.85rem; line-height:1.4;">
+            <b>Aliado:</b> ${pedido.aliado}<br>
+            <b>Cliente:</b> ${pedido.cliente}<br>
+            <b>Destino:</b> ${pedido.direccion}
+        </div>
+    `;
+    Cont.appendChild(alertBox);
+    SetTimeout(() => { alertBox.remove(); }, 7000);
+}
+
+Function toggleInvoiceFields() {
+    Const tipo = document.getElementById('invoice-tipo-entidad').value;
+    If (tipo === 'ALIADO') {
+        Document.getElementById('invoice-aliado-group').style.display = 'block';
+        Document.getElementById('invoice-motorizado-group').style.display = 'none';
+    } else {
+        Document.getElementById('invoice-aliado-group').style.display = 'none';
+        Document.getElementById('invoice-motorizado-group').style.display = 'block';
+    }
+}
+
+Function processInvoiceGeneration() {
+    Const tipo = document.getElementById('invoice-tipo-entidad').value;
+    If (tipo === 'ALIADO') {
+        GenerateAliadoInvoice();
+    } else {
+        GenerateMotorizadoPayrollInvoice();
+    }
+}
+
+Function generateAliadoInvoice() {
+    Const nombreAliado = document.getElementById('invoice-aliado').value;
+    Const fechaDesde = document.getElementById('invoice-fecha-desde').value;
+    Const fechaHasta = document.getElementById('invoice-fecha-hasta').value;
+    
+    If (!nombreAliado) { Swal.fire("Campo requerido", "Selecciona un aliado comercial.", "info"); return; }
+    If (!fechaDesde || !fechaHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
+
+    Const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
+
+    Const pedidosFiltrados = pedidos.filter(p => {
+        If (p.pendiente_aprobacion) return false; 
+        Const pedidoFechaISO = parseDateVEToISO(p.fecha);
+        If (nombreAliado !== "TODOS_LOS_ALIADOS" && p.aliado !== nombreAliado) return false;
+        If (pedidoFechaISO < fechaDesde || pedidoFechaISO > fechaHasta) return false;
+        Return true;
+    });
+
+    If (pedidosFiltrados.length === 0) {
+        Swal.fire("Sin datos", "No existen órdenes registradas en esos días para la selección.", "info");
+        Return;
+    }
+
+    Document.getElementById('fact-titulo-documento').innerText = "RELACIÓN DETALLADA DE SERVICIOS";
+
+    If(nombreAliado === "TODOS_LOS_ALIADOS") {
+        Document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Aliado Comercial:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #1e293b;">CONSOLIDADO GLOBAL</span>`;
+    } else {
+        Document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Aliado Comercial:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #ff6600;">${nombreAliado}</span>`;
+    }
+
+    Const fDesdeFormateada = fechaDesde.split('-').reverse().join('/');
+    Const fHastaFormateada = fechaHasta.split('-').reverse().join('/');
+    Document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
+    Document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+
+    Const tbodyFactura = document.getElementById('fact-detalles-ordenes');
+    TbodyFactura.innerHTML = '';
+    
+    Let acumuladoUSD = 0;
+    PedidosFiltrados.forEach(p => {
+        AcumuladoUSD += p.costo;
+        Const tagAliado = nombreAliado === "TODOS_LOS_ALIADOS" ? `<b style="color:#ff6600;">[${p.aliado}]</b> ` : '';
+        
+        TbodyFactura.innerHTML += `
+            <tr style="border-bottom: 1px dashed #cbd5e1; font-size: 0.95rem; color: #1e293b;">
+                <td style="padding: 10px 4px; vertical-align: top;">
+                    <div style="font-weight: bold; font-size: 1rem; color: #0f172a; margin-bottom: 3px;">
+                        ${tagAliado}👤 Cliente: ${p.cliente} <span style="font-size: 0.85rem; color: #64748b; font-weight: normal;">(${p.telefono || 'Sin tlf'})</span>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #334155; margin-bottom: 3px;">
+                        📍 <b>Dirección:</b> ${p.direccion}
+                    </div>
+                    <div style="font-size: 0.85rem; color: #475569; margin-bottom: 2px;">
+                        📦 <b>Detalle:</b> ${p.detalles || 'Despacho de entrega'}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b;">
+                        📅 <b>Fecha:</b> ${p.fecha} ${p.hora ? '| ⏰ ' + p.hora : ''} &nbsp;|&nbsp; 🛵 <b>Repartidor:</b> ${p.motorizado || 'Sin asignar'}
+                    </div>
+                </td>
+                <td style="padding: 10px 4px; text-align: right; font-weight: bold; font-size: 1.1rem; color: #0f172a; vertical-align: top; white-space: nowrap;">
+                    $${p.costo.toFixed(2)}
+                </td>
+            </tr>
+        `;
+    });
+
+    Document.getElementById('fact-total-usd').innerText = acumuladoUSD.toFixed(2);
+    Document.getElementById('fact-total-bs').innerText = FormatearBs(acumuladoUSD * tasa);
+    Document.getElementById('footer-pago-movil').innerHTML = "<b>Banco:</b> Banesco / Venezuela<br><b>Teléfono:</b> 04244529892<br><b>RIF:</b> 18410871";
+
+    RenderInvoiceToImage(nombreAliado === "TODOS_LOS_ALIADOS" ? "Consolidado_General" : nombreAliado);
+}
+
+Function generateMotorizadoPayrollInvoice() {
+    Const nomMoto = document.getElementById('invoice-motorizado-payroll').value;
+    Const fDesde = document.getElementById('invoice-fecha-desde').value;
+    Const fHasta = document.getElementById('invoice-fecha-hasta').value;
+
+    If (!nomMoto) { Swal.fire("Campo requerido", "Selecciona un motorizado para liquidar.", "info"); return; }
+    If (!fDesde || !fHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
+
+    Const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
+
+    Const pedidosFiltrados = pedidos.filter(p => {
+        If (p.pendiente_aprobacion) return false; 
+        Const pedidoFechaISO = parseDateVEToISO(p.fecha);
+        If (p.motorizado !== nomMoto) return false;
+        If (pedidoFechaISO < fDesde || pedidoFechaISO > fHasta) return false;
+        Return true;
+    });
+
+    If (pedidosFiltrados.length === 0) {
+        Swal.fire("Sin datos", "No existen rutas completadas por este repartidor en el rango seleccionado.", "info");
+        Return;
+    }
+
+    Document.getElementById('fact-titulo-documento').innerText = "RECIBO DE PAGO DE MOTORIZADO";
+    Document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Motorizado:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #ff6600;">${nomMoto}</span><br><b>Comisión Asignada:</b> <span>${Math.round(porcComisionMotorizado * 100)}%</span>`;
+    
+    Const fDesdeFormateada = fDesde.split('-').reverse().join('/');
+    Const fHastaFormateada = fHasta.split('-').reverse().join('/');
+    Document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
+    Document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+
+    Const tbodyFactura = document.getElementById('fact-detalles-ordenes');
+    TbodyFactura.innerHTML = '';
+
+    Let totalProducido = 0;
+    PedidosFiltrados.forEach(p => {
+        TotalProducido += p.costo;
+        TbodyFactura.innerHTML += `
+            <tr style="border-bottom: 1px dashed #cbd5e1; font-size: 0.95rem; color: #1e293b;">
+                <td style="padding: 10px 4px; vertical-align: top;">
+                    <div style="font-weight: bold; font-size: 1rem; color: #0f172a; margin-bottom: 3px;">
+                        👤 Cliente: ${p.cliente}
+                    </div>
+                    <div style="font-size: 0.9rem; color: #334155; margin-bottom: 3px;">
+                        📍 <b>Entrega:</b> ${p.direccion}
+                    </div>
+                    <div style="font-size: 0.85rem; color: #475569;">
+                        🏪 <b>Aliado:</b> ${p.aliado} &nbsp;|&nbsp; 📅 <b>Fecha:</b> ${p.fecha} ${p.hora ? '| ' + p.hora : ''}
+                    </div>
+                </td>
+                <td style="padding: 10px 4px; text-align: right; font-weight: bold; font-size: 1.1rem; color: #0f172a; vertical-align: top; white-space: nowrap;">
+                    $${p.costo.toFixed(2)}
+                </td>
+            </tr>
+        `;
+    });
+
+    Let comisionGanada = totalProducido * porcComisionMotorizado;
+
+    TbodyFactura.innerHTML += `
+        <tr style="border-top: 2px solid #000;">
+            <td style="padding: 10px 0; font-weight: bold; font-size: 1rem;">Subtotal Producido:</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold; font-size: 1.1rem;">$${totalProducido.toFixed(2)}</td>
+        </tr>
+        <tr>
+            <td style="padding: 6px 0; font-weight: bold; color: #10b981; font-size: 1.05rem;">Comisión Neta (${Math.round(porcComisionMotorizado * 100)}%):</td>
+            <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #10b981; font-size: 1.2rem;">$${comisionGanada.toFixed(2)}</td>
+        </tr>
+    `;
+
+    Document.getElementById('fact-total-usd').innerText = comisionGanada.toFixed(2);
+    Document.getElementById('fact-total-bs').innerText = FormatearBs(comisionGanada * tasa);
+    Document.getElementById('footer-pago-movil').innerHTML = "<b>Recibo generado automáticamente.</b><br>Pago correspondiente a comisiones por servicios de logística acumulados.";
+
+    RenderInvoiceToImage(nomMoto);
+}
+
+Function renderInvoiceToImage(entidadNombre) {
+    Const disenoRecibo = document.getElementById('recibo-diseno-factura');
+    DisenoRecibo.style.display = 'block';
+
+    Swal.fire({ title: 'Compilando imagen...', didOpen: () => { Swal.showLoading(); } });
+
+    Html2canvas(disenoRecibo, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+        Const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        Document.getElementById('imagen-vista-previa').src = imgData;
+        Document.getElementById('seccion-vista-previa').style.display = 'block';
+        Document.getElementById('boton-descargar-jpg').href = imgData;
+        
+        Const nombreArchivo = entidadNombre.replace(/\s+/g, '_');
+        Document.getElementById('boton-descargar-jpg').download = `Recibo_${nombreArchivo}.jpg`;
+        
+        DisenoRecibo.style.display = 'none';
+        Swal.close();
+        Document.getElementById('seccion-vista-previa').scrollIntoView({ behavior: 'smooth' });
+    });
+}
+
+Function syncCloudData() {
+    Db.collection('aliados').onSnapshot(snapshot => {
+        Aliados = [];
+        Snapshot.forEach(doc => aliados.push({ firestoreId: doc.id, ...doc.data() }));
+        RenderAliados();
+        UpdateSelectDropdowns();
+    });
+
+    Db.collection('motorizados').onSnapshot(snapshot => {
+        Motorizados = [];
+        Snapshot.forEach(doc => motorizados.push({ firestoreId: doc.id, ...doc.data() }));
+        RenderMotorizados();
+        UpdateSelectDropdowns();
+    });
+
+    Db.collection('gastos').onSnapshot(snapshot => {
+        Gastos = [];
+        Snapshot.forEach(doc => gastos.push({ firestoreId: doc.id, ...doc.data() }));
+        RenderGastos();
+    });
+
+    Db.collection('clientes').onSnapshot(snapshot => {
+        DirectorioClientes = [];
+        Snapshot.forEach(doc => directorioClientes.push({ firestoreId: doc.id, ...doc.data() }));
+        RenderClientesDirectorio();
+    });
+
+    Db.collection('pedidos').onSnapshot(snapshot => {
+        Pedidos = [];
+        PedidosPendientesAliados = []; 
+        
+        Snapshot.forEach(doc => {
+            Const data = doc.data();
+            If (data.pendiente_aprobacion === true) {
+                PedidosPendientesAliados.push({ firestoreId: doc.id, ...data });
             } else {
-                if (!aliados || aliados.length === 0) {
-                    Swal.fire("Error de Sistema", "La lista de aliados se está sincronizando de la base de datos. Espere un segundo.", "error");
-                    return;
-                }
-
-                // ARREGLADO: Búsqueda precisa por la propiedad 'usuario' guardada en Firestore
-                const aliadoExiste = aliados.find(a => {
-                    const campoUsuario = a.usuario || a.usuarioLogin || a.username;
-                    return campoUsuario && campoUsuario.toString().toLowerCase() === userIn.toLowerCase();
-                });
-                
-                if (aliadoExiste) {
-                    const pinRegistrado = aliadoExiste.pin || aliadoExiste.contrasena || aliadoExiste.pinIn;
-                    
-                    if (String(pinRegistrado) === pinIn) {
-                        const nombreAliado = aliadoExiste.nombre || aliadoExiste.nombreComercial || "Aliado";
-                        usuarioActual = { username: nombreAliado, rol: "aliado", aliadoComercial: nombreAliado };
-                        arrancarPortalAliado();
-                    } else {
-                        Swal.fire("Error de Acceso", "El PIN introducido es incorrecto.", "error");
-                    }
-                } else {
-                    Swal.fire("Error de Acceso", "El usuario de aliado no coincide con ningún registro.", "error");
-                }
+                Pedidos.push({ firestoreId: doc.id, ...data });
             }
+        });
+        
+        Pedidos.sort((a, b) => b.id - a.id);
+        RenderPedidos();
+        RenderPedidosPendientesAliadosTable(); 
+        
+        If (usuarioActual.rol === 'aliado') {
+            RenderPedidosPortalAliado();
         }
+    });
+}
 
-        function arrancarPortalAliado() {
-            document.getElementById('login-view').classList.add('hidden');
-            document.getElementById('portal-aliado-container').style.display = 'block';
-            document.getElementById('portal-nombre-aliado').innerText = usuarioActual.aliadoComercial;
-            renderPedidosPortalAliado(); // Actualización inmediata al ingresar
-        }
+Function renderPedidosPendientesAliadosTable() {
+    Const tbody = document.getElementById('tabla-pendientes-aliados-body');
+    Const panelBox = document.getElementById('panel-pendientes-aliados-box');
+    
+    If (usuarioActual.rol !== 'admin') return;
+    
+    Tbody.innerHTML = '';
+    If (pedidosPendientesAliados.length === 0) {
+        PanelBox.style.display = "none";
+        Return;
+    }
+    
+    PanelBox.style.display = "block";
+    PedidosPendientesAliados.forEach(p => {
+        Tbody.innerHTML += `
+            <tr>
+                <td class="text-bold" style="color: #ff6600;">${p.aliado}</td>
+                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                <td>${p.direccion}</td>
+                <td>${p.detalles}</td>
+                <td>
+                    <button type="button" class="btn-submit" style="padding:6px 10px; font-size:0.78rem; width:auto; background:#ff6600;" onclick="cargarPedidoPendienteAlFormulario('${p.firestoreId}')">
+                        <i class="fa-solid fa-bolt"></i> Procesar Orden
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
 
-        function logoutPortal() {
-            document.getElementById('portal-aliado-container').style.display = 'none';
-            document.getElementById('login-view').classList.remove('hidden');
-            document.getElementById('form-portal-aliado').reset();
-            usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
-        }
+Function cargarPedidoPendienteAlFormulario(fId) {
+    Const p = pedidosPendientesAliados.find(item => item.firestoreId === fId);
+    If (!p) return;
+    
+    Document.getElementById('ped-nombre').value = p.cliente;
+    Document.getElementById('ped-telefono').value = p.telefono;
+    Document.getElementById('ped-direccion').value = p.direccion;
+    Document.getElementById('ped-aliado').value = p.aliado;
+    Document.getElementById('ped-detalles').value = p.detalles;
+    
+    // Carga de fecha original enviada por aliado
+    Const inputFecha = document.getElementById('ped-fecha');
+    If (inputFecha) {
+        InputFecha.value = parseDateVEToISO(p.fecha) || getVenezuelaDate();
+    }
 
-        // CÓDIGO COMPLETADO: Renderizado dinámico de rutas en tiempo real para el portal del aliado
-        function renderPedidosPortalAliado() {
-            const tbody = document.getElementById('tabla-portal-aliado-body');
-            if (!tbody) return;
-            tbody.innerHTML = '';
+    Document.getElementById('ped-costo').value = "";
+    Document.getElementById('ped-motorizado').value = "";
+    
+    EditPedidoId = "PENDIENTE_" + fId; 
+    
+    Document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Procesando Pedido de Aliado [${p.aliado}]`;
+    
+    Swal.fire({
+        Toast: true,
+        Position: 'top-end',
+        Icon: 'info',
+        Title: 'Datos cargados. Complete motorizado y costo.',
+        ShowConfirmButton: false,
+        Timer: 3500
+    });
+    
+    Window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-            const misPendientes = pedidosPendientesAliados.filter(p => p.aliado === usuarioActual.aliadoComercial);
-            const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
-            
-            const todosMisPedidos = [...misPendientes, ...misAprobados].sort((a, b) => b.id - a.id);
+Function processPortalPedido(e) {
+    E.preventDefault();
+    Const clientName = document.getElementById('port-nombre').value.trim();
+    Const clientPhone = document.getElementById('port-telefono').value.trim();
+    Const clientDir = document.getElementById('port-direccion').value.trim();
+    Const detailText = document.getElementById('port-detalles').value.trim();
+    
+    // Captura fecha seleccionada en portal o usa hoy por defecto
+    Const inputFechaPort = document.getElementById('port-fecha');
+    Const selectedFechaPort = inputFechaPort && inputFechaPort.value ? InputFechaPort.value : getVenezuelaDate();
+    Const fechaFormatSalida = formatISOToVE(selectedFechaPort);
 
-            if (todosMisPedidos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
-                return;
-            }
+    Const numericId = Date.now();
 
-            todosMisPedidos.forEach(p => {
-                let badgeEstatus = '';
-                if (p.pendiente_aprobacion) {
-                    badgeEstatus = `<span class="badge-blue" style="background-color: #ffedd5; color: #ea580c; border: 1px solid #fed7aa;">Pendiente de Aprobación</span>`;
-                } else {
-                    badgeEstatus = `<span class="badge-blue" style="background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;">Ruta Asignada Activa</span>`;
-                }
+    Const pedidoPreRegistro = {
+        Id: numericId,
+        Fecha: fechaFormatSalida,
+        Hora: getVenezuelaTime(),
+        Cliente: clientName,
+        Telefono: clientPhone,
+        Direccion: clientDir,
+        Aliado: usuarioActual.aliadoComercial,
+        Motorizado: "",
+        Costo: 0,
+        Detalles: detailText,
+        Pendiente_aprobacion: true 
+    };
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
-                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
-                        <td>${p.direccion}</td>
-                        <td>${badgeEstatus}</td>
-                        <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
-                        <td class="text-orange">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
-                    </tr>
-                `;
+    Swal.fire({ title: 'Sincronizando con central...', didOpen: () => { Swal.showLoading(); } });
+
+    Db.collection('pedidos').add(pedidoPreRegistro).then(() => {
+        Swal.close();
+        Document.getElementById('form-portal-aliado').reset();
+        If (inputFechaPort) inputFechaPort.value = getVenezuelaDate();
+        
+        Const msgCentralAdmin = encodeURIComponent(
+            `*📌 NOTIFICACIÓN DE PORTAL DE ALIADOS*\n\n` +
+            `El aliado comercial *${pedidoPreRegistro.aliado}* ha generado una nueva solicitud de despacho en la plataforma.\n\n` +
+            `📅 *Fecha Solicitada:* ${pedidoPreRegistro.fecha}\n` +
+            `👤 *Cliente:* ${pedidoPreRegistro.cliente}\n` +
+            `📞 *Teléfono:* +58 ${pedidoPreRegistro.telefono}\n` +
+            `📍 *Dirección de Entrega:* ${pedidoPreRegistro.direccion}\n` +
+            `📦 *Detalle del Paquete:* ${pedidoPreRegistro.detalles}\n\n` +
+            `⚠️ *Acción:* Por favor, ingrese al panel de administración central para asignar la unidad de motorizado y fijar la tarifa de delivery correspondiente.`
+        );
+
+        Swal.fire({
+            Title: "¡Solicitud Enviada!",
+            Text: "Su pedido ha sido indexado. Presione el botón para enviar la notificación a despacho central vía WhatsApp.",
+            Icon: "success",
+            ConfirmButtonText: "Notificar por WhatsApp",
+            ConfirmButtonColor: "#25d366"
+        }).then(() => {
+            Window.open(`https://api.whatsapp.com/send?phone=584244529892&text=${msgCentralAdmin}`, '_blank');
+        });
+    });
+}
+
+Function triggerAutocomplete(type) {
+    Const valInputTel = document.getElementById("ped-telefono").value.trim().toLowerCase();
+    Const valInputNom = document.getElementById("ped-nombre").value.trim().toLowerCase();
+    
+    Const boxTel = document.getElementById("sug-telefono");
+    Const boxNom = document.getElementById("sug-nombre");
+
+    BoxTel.innerHTML = "";
+    BoxNom.innerHTML = "";
+    BoxTel.style.display = "none";
+    BoxNom.style.display = "none";
+
+    If (type === 'telefono' && valInputTel.length >= 2) {
+        Const coincidencias = directorioClientes.filter(c => c.telefono.toLowerCase().includes(valInputTel));
+        If (coincidencias.length > 0) {
+            BoxTel.style.display = "block";
+            Coincidencias.forEach(c => {
+                Const div = document.createElement("div");
+                Div.className = "suggestion-item";
+                Div.innerHTML = `<span>📱 <b>${c.telefono}</b></span><span class="sug-meta">${c.nombre}</span>`;
+                Div.onclick = () => fillFormFromSuggestion(c);
+                BoxTel.appendChild(div);
             });
         }
-
-        function arrancarAplicacion() {
-            document.getElementById('login-view').classList.add('hidden');
-            document.getElementById('app-container').classList.add('active');
-            
-            const hoyISO = getVenezuelaDate();
-            document.getElementById('filtro-fecha-desde').value = hoyISO;
-            document.getElementById('filtro-fecha-hasta').value = hoyISO;
-            document.getElementById('invoice-fecha-desde').value = hoyISO;
-            document.getElementById('invoice-fecha-hasta').value = hoyISO;
-
-            const badge = document.getElementById('badge-rol');
-            badge.innerText = usuarioActual.rol.toUpperCase();
-            
-            if (usuarioActual.rol === 'aliado') {
-                document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'none');
-                document.getElementById('filtro-aliado-box').style.display = 'none';
-                document.getElementById('container-select-aliado').style.display = 'none';
-            } else {
-                document.querySelectorAll('.v-admin').forEach(el => el.style.display = 'block');
-                document.getElementById('filtro-aliado-box').style.display = 'block';
-                document.getElementById('container-select-aliado').style.display = 'block';
-            }
-
-            initRealTimeListener();
-            loadComisionConfig();
-            
-            document.addEventListener("click", function (e) {
-                if (!e.target.closest('.form-group')) {
-                    document.getElementById("sug-telefono").style.display = "none";
-                    document.getElementById("sug-nombre").style.display = "none";
-                }
+    } 
+    Else if (type === 'nombre' && valInputNom.length >= 2) {
+        Const coincidencias = directorioClientes.filter(c => c.nombre.toLowerCase().includes(valInputNom));
+        If (coincidencias.length > 0) {
+            BoxNom.style.display = "block";
+            Coincidencias.forEach(c => {
+                Const div = document.createElement("div");
+                Div.className = "suggestion-item";
+                Div.innerHTML = `<span>👤 <b>${c.nombre}</b></span><span class="sug-meta">${c.telefono}</span>`;
+                Div.onclick = () => fillFormFromSuggestion(c);
+                BoxNom.appendChild(div);
             });
         }
+    }
+}
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            document.getElementById(`view-${tabId}`).classList.add('active');
-        }
+Function fillFormFromSuggestion(cliente) {
+    Document.getElementById("ped-telefono").value = cliente.telefono;
+    Document.getElementById("ped-nombre").value = cliente.nombre;
+    Document.getElementById("ped-direccion").value = cliente.direccion;
+    
+    Document.getElementById("sug-telefono").style.display = "none";
+    Document.getElementById("sug-nombre").style.display = "none";
 
-        function loadComisionConfig() {
-            db.collection('configuracion').doc('general').get().then(doc => {
-                if (doc.exists && doc.data().comision_motorizado) {
-                    porcComisionMotorizado = doc.data().comision_motorizado;
-                    document.getElementById('cfg-comision').value = Math.round(porcComisionMotorizado * 100);
-                } else {
-                    db.collection('configuracion').doc('general').set({ comision_motorizado: 0.70 });
-                }
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Cliente cargado con éxito', showConfirmButton: false, timer: 1500 });
+}
+
+Function saveDirectorioCliente(e) {
+    E.preventDefault();
+    Const nom = document.getElementById('cli-nombre').value.trim();
+    Const tlf = document.getElementById('cli-telefono').value.trim();
+    Const dir = document.getElementById('cli-direccion').value.trim();
+
+    If (editClienteDirId !== null) {
+        Db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
+        .then(() => {
+            EditClienteDirId = null;
+            Document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes`;
+            Document.getElementById('btn-submit-cliente-dir').innerHTML = `<i class="fa-solid fa-user-plus"></i> Guardar en Cartera`;
+            Document.getElementById('form-directorio-cliente').reset();
+            Swal.fire("Actualizado", "Datos del cliente modificados en la nube.", "success");
+        });
+    } else {
+        Db.collection('clientes').add({ nombre: nom, telefono: tlf, direccion: dir, creado: Date.now() })
+        .then(() => {
+            Document.getElementById('form-directorio-cliente').reset();
+            Swal.fire("Guardado", "Cliente nuevo añadido a la cartera comercial.", "success");
+        });
+    }
+}
+
+Function renderClientesDirectorio() {
+    Const tbody = document.getElementById('tabla-clientes-directorio-body');
+    Tbody.innerHTML = '';
+    If(directorioClientes.length === 0) {
+        Tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">Ningún cliente en la base de datos de la cartera.</td></tr>`;
+        Return;
+    }
+    DirectorioClientes.forEach(c => {
+        Tbody.innerHTML += `
+            <tr>
+                <td class="text-bold">${c.nombre}</td>
+                <td>${c.telefono}</td>
+                <td>${c.direccion}</td>
+                <td>
+                    <div class="action-cell">
+                        <button type="button" class="action-btn" onclick="editClienteDir('${c.firestoreId}')">✏️</button>
+                        <button type="button" class="action-btn" onclick="deleteClienteDir('${c.firestoreId}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+Function editClienteDir(fId) {
+    Const c = directorioClientes.find(item => item.firestoreId === fId);
+    If (!c) return;
+    EditClienteDirId = fId;
+    Document.getElementById('form-cliente-title').innerHTML = `✏️ Editar Ficha Cliente`;
+    Document.getElementById('btn-submit-cliente-dir').innerHTML = `Actualizar Cliente`;
+    Document.getElementById('cli-nombre').value = c.nombre;
+    Document.getElementById('cli-telefono').value = c.telefono;
+    Document.getElementById('cli-direccion').value = c.direccion;
+}
+
+Function deleteClienteDir(fId) {
+    Swal.fire({
+        Title: '¿Eliminar de la cartera?',
+        Text: "El cliente ya no aparecerá en las sugerencias automáticas.",
+        Icon: 'warning',
+        ShowCancelButton: true,
+        ConfirmButtonColor: '#ff6600',
+        CancelButtonColor: '#64748b',
+        ConfirmButtonText: 'Sí, borrar',
+        CancelButtonText: 'Cancelar'
+    }).then((result) => {
+        If (result.isConfirmed) {
+            Db.collection('clientes').doc(fId).delete().then(() => {
+                Swal.fire('Removido', 'Cliente desvinculado.', 'success');
             });
         }
+    });
+}
 
-        function saveComisionConfig() {
-            const inputVal = parseFloat(document.getElementById('cfg-comision').value) || 70;
-            const decimalVal = inputVal / 100;
-            db.collection('configuracion').doc('general').update({ comision_motorizado: decimalVal })
-            .then(() => {
-                porcComisionMotorizado = decimalVal;
-                Swal.fire("Ajuste Guardado", `La comisión global se fijó en ${inputVal}%`, "success");
-                renderPedidos();
-            });
-        }
+Function limpiarFiltrosBusqueda() {
+    Const hoyISO = getVenezuelaDate();
+    Document.getElementById('filtro-fecha-desde').value = hoyISO;
+    Document.getElementById('filtro-fecha-hasta').value = hoyISO;
+    Document.getElementById('filtro-aliado-busqueda').value = "";
+    If(document.getElementById('filtro-motorizado-busqueda')) document.getElementById('filtro-motorizado-busqueda').value = "";
+    RenderPedidos();
+}
 
-        function initRealTimeListener() {
-            db.collection('pedidos').onSnapshot(snapshot => {
-                snapshot.docChanges().forEach(change => {
-                    if (change.type === "added" && !cargaInicialPedidos) {
-                        const pedidoData = change.doc.data();
-                        if (pedidoData.pendiente_aprobacion) return;
+Function registerGasto(event) {
+    Event.preventDefault();
+    Const det = document.getElementById('gasto-detalle').value;
+    Const mon = parseFloat(document.getElementById('gasto-monto').value) || 0;
+    
+    Db.collection('gastos').add({ detalle: det, monto: mon, fecha: getVenezuelaDate() }).then(() => {
+        Document.getElementById('form-gastos').reset();
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado', showConfirmButton: false, timer: 1500 });
+    });
+}
 
-                        if (usuarioActual.rol === 'admin' || (usuarioActual.rol === 'aliado' && pedidoData.aliado === usuarioActual.aliadoComercial)) {
-                            reproducirNotificacion();
-                            mostrarNotificacionFlotante(pedidoData);
-                        }
-                    }
-                });
-                cargaInicialPedidos = false;
-            });
-        }
+Function renderGastos() {
+    Const container = document.getElementById('expense-container');
+    If (gastos.length === 0) { container.innerHTML = 'Sin egresos registrados.'; return; }
+    Container.innerHTML = '';
+    Gastos.forEach(g => {
+        Container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
+    });
+    RenderPedidos(); 
+}
 
-        function reproducirNotificacion() {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-600.wav");
-            audio.play().catch(() => {});
-        }
+Function deleteGasto(id) {
+    Swal.fire({
+        Title: '¿Eliminar Gasto?',
+        Icon: 'question',
+        ShowCancelButton: true,
+        ConfirmButtonColor: '#ef4444',
+        ConfirmButtonText: 'Eliminar'
+    }).then((res) => {
+        If(res.isConfirmed) db.collection('gastos').doc(id).delete();
+    });
+}
 
-        function mostrarNotificacionFlotante(pedido) {
-            const cont = document.getElementById('contenedor-alertas-flotantes');
-            const alertBox = document.createElement('div');
-            alertBox.className = 'alerta-notificacion-rt';
-            alertBox.innerHTML = `
-                <div style="font-weight:800; color:#ff6600; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> ¡NUEVO PEDIDO ENTRANTE!</div>
-                <div style="font-size:0.85rem; line-height:1.4;">
-                    <b>Aliado:</b> ${pedido.aliado}<br>
-                    <b>Cliente:</b> ${pedido.cliente}<br>
-                    <b>Destino:</b> ${pedido.direccion}
+Function renderPedidos() {
+    Const tbody = document.getElementById('tabla-pedidos-body');
+    Tbody.innerHTML = '';
+
+    Const fDesde = document.getElementById('filtro-fecha-desde').value;
+    Const fHasta = document.getElementById('filtro-fecha-hasta').value;
+    
+    Const fAliado = usuarioActual.rol === 'aliado' ? UsuarioActual.aliadoComercial : document.getElementById('filtro-aliado-busqueda').value;
+    Const fMotorizado = usuarioActual.rol === 'aliado' ? "" : document.getElementById('filtro-motorizado-busqueda').value;
+
+    Const pedidosFiltrados = pedidos.filter(p => {
+        If (p.pendiente_aprobacion) return false; 
+        Const pedidoFechaISO = parseDateVEToISO(p.fecha);
+        If (fDesde && pedidoFechaISO < fDesde) return false;
+        If (fHasta && pedidoFechaISO > fHasta) return false;
+        If (fAliado && p.aliado !== fAliado) return false;
+        If (fMotorizado && p.motorizado !== fMotorizado) return false;
+        Return true;
+    });
+
+    Let totalIngresos = 0;
+    PedidosFiltrados.forEach(p => {
+        TotalIngresos += p.costo;
+    });
+    
+    Let totalGastos = 0;
+    If (usuarioActual.rol === 'admin') {
+        Const gastosFiltrados = gastos.filter(g => {
+            If (fDesde && g.fecha < fDesde) return false;
+            If (fHasta && g.fecha > fHasta) return false;
+            Return true;
+        });
+        GastosFiltrados.forEach(g => totalGastos += g.monto);
+    }
+
+    Let neto = totalIngresos - totalGastos;
+
+    Document.getElementById('dash-cant-pedidos').innerText = pedidosFiltrados.length;
+    Document.getElementById('dash-ingreso-usd').innerText = `$${totalIngresos.toFixed(2)}`;
+    
+    If (usuarioActual.rol === 'admin') {
+        Document.getElementById('dash-gasto-usd').innerText = `$${totalGastos.toFixed(2)}`;
+        Document.getElementById('dash-balance-neto').innerText = `$${neto.toFixed(2)}`;
+        Const boxNeto = document.getElementById('dash-neto-box');
+        If(neto >= 0) { boxNeto.className = "dash-card neto-pos"; } else { boxNeto.className = "dash-card neto-neg"; }
+    }
+
+    If(pedidosFiltrados.length === 0) {
+        Tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;" class="text-italic">No hay pedidos registrados con los filtros seleccionados.</td></tr>`;
+        Return;
+    }
+
+    PedidosFiltrados.forEach(p => {
+        Let btnAcciones = usuarioActual.rol === 'admin' ? `
+            <td>
+                <div class="action-cell">
+                    <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
+                    <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
                 </div>
-            `;
-            cont.appendChild(alertBox);
-            setTimeout(() => { alertBox.remove(); }, 7000);
+            </td>
+        ` : `<td class="v-admin"></td>`;
+
+        Tbody.innerHTML += `
+            <tr onclick="openReceiptModal('${p.firestoreId}')">
+                <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
+                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
+                <td>${p.direccion}</td>
+                <td>${p.aliado}</td>
+                <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
+                <td class="text-orange">$${p.costo.toFixed(2)}</td>
+                <td>${p.detalles}</td>
+                ${btnAcciones}
+            </tr>
+        `;
+    });
+}
+
+Function processNewPedido(e) {
+    E.preventDefault();
+    Const clientName = document.getElementById('ped-nombre').value.trim();
+    Const clientPhone = document.getElementById('ped-telefono').value.trim();
+    Const clientDir = document.getElementById('ped-direccion').value.trim();
+    
+    Const chosenAliado = usuarioActual.rol === 'aliado' ? UsuarioActual.aliadoComercial : document.getElementById('ped-aliado').value;
+    Const chosenMoto = usuarioActual.rol === 'aliado' ? "Pendiente por Asignar" : document.getElementById('ped-motorizado').value;
+    
+    Const costValue = parseFloat(document.getElementById('ped-costo').value) || 0;
+    Const detailText = document.getElementById('ped-detalles').value || "Despacho";
+
+    // Manejo de Fecha seleccionada
+    Const inputFechaPed = document.getElementById('ped-fecha');
+    Const selectedFechaISO = inputFechaPed && inputFechaPed.value ? InputFechaPed.value : getVenezuelaDate();
+    Const fechaFormatSalida = formatISOToVE(selectedFechaISO);
+
+    Const existeCliente = directorioClientes.some(c => c.telefono === clientPhone);
+    If (!existeCliente && clientPhone && clientName) {
+        Db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
+    }
+
+    Let pendingReferenceId = null;
+    If (editPedidoId && editPedidoId.startsWith("PENDIENTE_")) {
+        PendingReferenceId = editPedidoId.replace("PENDIENTE_", "");
+    }
+
+    If (editPedidoId !== null && !pendingReferenceId) {
+        Db.collection('pedidos').doc(editPedidoId).update({
+            Fecha: fechaFormatSalida,
+            Cliente: clientName, telefono: clientPhone, direccion: clientDir,
+            Aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
+        }).then(() => {
+            EditPedidoId = null;
+            Document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+            Document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
+            Document.getElementById('form-pedido').reset();
+            If (inputFechaPed) inputFechaPed.value = getVenezuelaDate();
+            Swal.fire("Modificado", "Pedido actualizado con éxito.", "success");
+            SwitchTab('gestion');
+        });
+    } else {
+        Const numericId = Date.now();
+
+        Const nuevoPedido = {
+            Id: numericId,
+            Fecha: fechaFormatSalida,
+            Hora: getVenezuelaTime(),
+            Cliente: clientName, telefono: clientPhone, direccion: clientDir,
+            Aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
+        };
+
+        If (pendingReferenceId) {
+            Db.collection('pedidos').doc(pendingReferenceId).delete();
+            EditPedidoId = null;
         }
 
-        function toggleInvoiceFields() {
-            const tipo = document.getElementById('invoice-tipo-entidad').value;
-            if (tipo === 'ALIADO') {
-                document.getElementById('invoice-aliado-group').style.display = 'block';
-                document.getElementById('invoice-motorizado-group').style.display = 'none';
-            } else {
-                document.getElementById('invoice-aliado-group').style.display = 'none';
-                document.getElementById('invoice-motorizado-group').style.display = 'block';
-            }
-        }
-
-        function processInvoiceGeneration() {
-            const tipo = document.getElementById('invoice-tipo-entidad').value;
-            if (tipo === 'ALIADO') {
-                generateAliadoInvoice();
-            } else {
-                generateMotorizadoPayrollInvoice();
-            }
-        }
-
-        function generateMotorizadoPayrollInvoice() {
-            const nomMoto = document.getElementById('invoice-motorizado-payroll').value;
-            const fDesde = document.getElementById('invoice-fecha-desde').value;
-            const fHasta = document.getElementById('invoice-fecha-hasta').value;
-
-            if (!nomMoto) { Swal.fire("Campo requerido", "Selecciona un motorizado para liquidar.", "info"); return; }
-            if (!fDesde || !fHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
-
-            const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
-
-            const pedidosFiltrados = pedidos.filter(p => {
-                if (p.pendiente_aprobacion) return false; 
-                const pedidoFechaISO = parseDateVEToISO(p.fecha);
-                if (p.motorizado !== nomMoto) return false;
-                if (pedidoFechaISO < fDesde || pedidoFechaISO > fHasta) return false;
-                return true;
-            });
-
-            if (pedidosFiltrados.length === 0) {
-                Swal.fire("Sin datos", "No existen rutas completadas por este repartidor en el rango seleccionado.", "info");
-                return;
-            }
-
-            document.getElementById('fact-titulo-documento').innerText = "RECIBO DE PAGO DE MOTORIZADO";
-            document.getElementById('fact-bloque-entidad').innerHTML = `<b>Motorizado:</b> <span>${nomMoto}</span><br><b>Porcentaje de Comisión:</b> <span>${Math.round(porcComisionMotorizado * 100)}%</span>`;
+        Db.collection('pedidos').add(nuevoPedido).then(() => {
+            Const dataAliado = aliados.find(a => a.nombre === nuevoPedido.aliado) || { telefono: "" };
+            Const dataMoto = motorizados.find(m => m.nombre === nuevoPedido.motorizado) || { telefono: "" };
             
-            const fDesdeFormateada = fDesde.split('-').reverse().join('/');
-            const fHastaFormateada = fHasta.split('-').reverse().join('/');
-            document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
-            document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
+            Const msgCliente = encodeURIComponent(
+                `*SUN DELIVERY VALENCIA* 🚀\n\n` +
+                `¡Hola *${nuevoPedido.cliente}*! Tu servicio de entrega ha sido procesado de manera exitosa.\n\n` +
+                `📅 *Fecha:* ${nuevoPedido.fecha}\n` +
+                `🏪 *Comercio:* ${nuevoPedido.aliado}\n` +
+                `🛵 *Repartidor:* ${nuevoPedido.motorizado}\n` +
+                `📍 *Dirección de Entrega:* ${nuevoPedido.direccion}\n` +
+                `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
+                `💵 *Costo Delivery:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                `✨ ¡Muchas gracias por tu preferencia!`
+            );
 
-            const tbodyFactura = document.getElementById('fact-detalles-ordenes');
-            tbodyFactura.innerHTML = '';
+            Const msgAliado = encodeURIComponent(
+                `*NOTIFICACIÓN DE DESPACHO* 🏪\n\n` +
+                `Estimado aliado comercial de *${nuevoPedido.aliado}*, le informamos que hemos asignado una unidad para su orden.\n\n` +
+                `📅 *Fecha:* ${nuevoPedido.fecha}\n` +
+                `🛵 *Motorizado Asignado:* ${nuevoPedido.motorizado}\n` +
+                `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
+                `📍 *Destino:* ${nuevoPedido.direccion}\n` +
+                `📦 *Detalle del Paquete:* ${nuevoPedido.detalles}\n` +
+                `💵 *Monto de Ruta:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                `🤝 ¡Trabajando juntos para ofrecer el mejor servicio!`
+            );
 
-            let totalProducido = 0;
-            pedidosFiltrados.forEach(p => {
-                totalProducido += p.costo;
-                tbodyFactura.innerHTML += `
-                    <tr style="border-bottom: 1px dashed #dddddd;">
-                        <td style="padding: 6px 0;">${p.cliente} (${p.fecha})<br><span style="font-size:0.65rem; color:#666;">Aliado: ${p.aliado}</span></td>
-                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">$${p.costo.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
+            Const msgMotorizado = encodeURIComponent(
+                `*NUEVA ASIGNACIÓN DE RUTA* 🏍️\n\n` +
+                `Hola *${nuevoPedido.motorizado}*, tienes un nuevo despacho activo.\n\n` +
+                `📅 *Fecha:* ${nuevoPedido.fecha}\n` +
+                `🏪 *Retira en Aliado:* ${nuevoPedido.aliado}\n` +
+                `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
+                `📞 *Tlf Cliente:* +58 ${nuevoPedido.telefono}\n` +
+                `📍 *Dirección:* ${nuevoPedido.direccion}\n` +
+                `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
+                `💰 *Cobrar al Cliente:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
+                `⚠️ *Importante:* Confirmar al llegar al destino.`
+            );
 
-            let comisionGanada = totalProducido * porcComisionMotorizado;
+            Document.getElementById('wa-btn-cliente').href = `https://api.whatsapp.com/send?phone=${nuevoPedido.telefono}&text=${msgCliente}`;
+            Document.getElementById('wa-btn-aliado').href = `https://api.whatsapp.com/send?phone=${dataAliado.telefono}&text=${msgAliado}`;
+            Document.getElementById('wa-btn-motorizado').href = `https://api.whatsapp.com/send?phone=${dataMoto.telefono}&text=${msgMotorizado}`;
 
-            tbodyFactura.innerHTML += `
-                <tr style="border-top: 2px solid #000;">
-                    <td style="padding: 8px 0; font-weight: bold;">Subtotal Producido:</td>
-                    <td style="padding: 8px 0; text-align: right; font-weight: bold;">$${totalProducido.toFixed(2)}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 4px 0; font-weight: bold; color: #10b981;">Comisión Neta (${Math.round(porcComisionMotorizado * 100)}%):</td>
-                    <td style="padding: 4px 0; text-align: right; font-weight: bold; color: #10b981;">$${comisionGanada.toFixed(2)}</td>
-                </tr>
-            `;
-
-            document.getElementById('fact-total-usd').innerText = comisionGanada.toFixed(2);
-            document.getElementById('fact-total-bs').innerText = FormatearBs(comisionGanada * tasa);
-            document.getElementById('footer-pago-movil').innerHTML = "<b>Recibo generado automáticamente.</b><br>Pago correspondiente a comisiones por servicios de logística acumulados.";
-
-            renderInvoiceToImage(nomMoto);
-        }
-
-        function renderInvoiceToImage(entidadNombre) {
-            const disenoRecibo = document.getElementById('recibo-diseno-factura');
-            disenoRecibo.style.display = 'block';
-
-            Swal.fire({ title: 'Compilando imagen...', didOpen: () => { Swal.showLoading(); } });
-
-            html2canvas(disenoRecibo, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                document.getElementById('imagen-vista-previa').src = imgData;
-                document.getElementById('seccion-vista-previa').style.display = 'block';
-                document.getElementById('boton-descargar-jpg').href = imgData;
-                
-                const nombreArchivo = entidadNombre.replace(/\s+/g, '_');
-                document.getElementById('boton-descargar-jpg').download = `Recibo_${nombreArchivo}.jpg`;
-                
-                disenoRecibo.style.display = 'none';
-                Swal.close();
-                document.getElementById('seccion-vista-previa').scrollIntoView({ behavior: 'smooth' });
-            });
-        }
-
-        function syncCloudData() {
-            db.collection('aliados').onSnapshot(snapshot => {
-                aliados = [];
-                snapshot.forEach(doc => aliados.push({ firestoreId: doc.id, ...doc.data() }));
-                renderAliados();
-                updateSelectDropdowns();
-            });
-
-            db.collection('motorizados').onSnapshot(snapshot => {
-                motorizados = [];
-                snapshot.forEach(doc => motorizados.push({ firestoreId: doc.id, ...doc.data() }));
-                renderMotorizados();
-                updateSelectDropdowns();
-            });
-
-            db.collection('gastos').onSnapshot(snapshot => {
-                gastos = [];
-                snapshot.forEach(doc => gastos.push({ firestoreId: doc.id, ...doc.data() }));
-                renderGastos();
-            });
-
-            db.collection('clientes').onSnapshot(snapshot => {
-                directorioClientes = [];
-                snapshot.forEach(doc => directorioClientes.push({ firestoreId: doc.id, ...doc.data() }));
-                renderClientesDirectorio();
-            });
-
-            db.collection('pedidos').onSnapshot(snapshot => {
-                pedidos = [];
-                pedidosPendientesAliados = []; 
-                
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.pendiente_aprobacion === true) {
-                        pedidosPendientesAliados.push({ firestoreId: doc.id, ...data });
-                    } else {
-                        pedidos.push({ firestoreId: doc.id, ...data });
-                    }
-                });
-                
-                pedidos.sort((a, b) => b.id - a.id);
-                renderPedidos();
-                renderPedidosPendientesAliadosTable(); 
-                
-                // Refrescar automáticamente la vista del aliado si está conectado
-                if (usuarioActual.rol === 'aliado') {
-                    renderPedidosPortalAliado();
-                }
-            });
-        }
-
-        function renderPedidosPendientesAliadosTable() {
-            const tbody = document.getElementById('tabla-pendientes-aliados-body');
-            const panelBox = document.getElementById('panel-pendientes-aliados-box');
+            Document.getElementById('form-pedido').reset();
+            If (inputFechaPed) inputFechaPed.value = getVenezuelaDate();
             
-            if (usuarioActual.rol !== 'admin') return;
-            
-            tbody.innerHTML = '';
-            if (pedidosPendientesAliados.length === 0) {
-                panelBox.style.display = "none";
-                return;
-            }
-            
-            panelBox.style.display = "block";
-            pedidosPendientesAliados.forEach(p => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-bold" style="color: #ff6600;">${p.aliado}</td>
-                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
-                        <td>${p.direccion}</td>
-                        <td>${p.detalles}</td>
-                        <td>
-                            <button type="button" class="btn-submit" style="padding:6px 10px; font-size:0.78rem; width:auto; background:#ff6600;" onclick="cargarPedidoPendienteAlFormulario('${p.firestoreId}')">
-                                <i class="fa-solid fa-bolt"></i> Procesar Orden
-                            </button>
-                        </td>
-                    </tr>
-                `;
+            Document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+            Document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
+            Document.getElementById('whatsapp-modal').classList.add('active');
+        });
+    }
+}
+
+Function editPedido(event, fId) {
+    If (event) event.stopPropagation();
+    Const p = pedidos.find(item => item.firestoreId === fId);
+    If (!p) return;
+    
+    EditPedidoId = fId;
+    Document.getElementById('form-pedido-title').innerHTML = `✏️ Editar Pedido Comercial`;
+    Document.getElementById('btn-submit-pedido').innerHTML = `Actualizar Pedido`;
+
+    // Cargar fecha existente en el selector
+    Const inputFechaPed = document.getElementById('ped-fecha');
+    If (inputFechaPed) {
+        InputFechaPed.value = parseDateVEToISO(p.fecha) || getVenezuelaDate();
+    }
+
+    Document.getElementById('ped-nombre').value = p.cliente;
+    Document.getElementById('ped-telefono').value = p.telefono;
+    Document.getElementById('ped-direccion').value = p.direccion;
+    If(usuarioActual.rol === 'admin') document.getElementById('ped-aliado').value = p.aliado;
+    Document.getElementById('ped-motorizado').value = p.motorizado;
+    Document.getElementById('ped-costo').value = p.costo;
+    Document.getElementById('ped-detalles').value = p.detalles;
+    SwitchTab('agregar');
+}
+
+Function deletePedido(event, fId) {
+    If (event) event.stopPropagation();
+    Swal.fire({
+        Title: '¿Eliminar Pedido?',
+        Text: "Esta acción borrará el registro permanente en la nube.",
+        Icon: 'warning',
+        ShowCancelButton: true,
+        ConfirmButtonColor: '#ff6600',
+        ConfirmButtonText: 'Sí, borrar de la nube'
+    }).then((res) => {
+        If(res.isConfirmed) {
+            Db.collection('pedidos').doc(fId).delete().then(() => {
+                Swal.fire("Borrado", "El despacho fue eliminado.", "success");
             });
         }
-
-        function cargarPedidoPendienteAlFormulario(fId) {
-            const p = pedidosPendientesAliados.find(item => item.firestoreId === fId);
-            if (!p) return;
-            
-            document.getElementById('ped-nombre').value = p.cliente;
-            document.getElementById('ped-telefono').value = p.telefono;
-            document.getElementById('ped-direccion').value = p.direccion;
-            document.getElementById('ped-aliado').value = p.aliado;
-            document.getElementById('ped-detalles').value = p.detalles;
-            
-            document.getElementById('ped-costo').value = "";
-            document.getElementById('ped-motorizado').value = "";
-            
-            editPedidoId = "PENDIENTE_" + fId; 
-            
-            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Procesando Pedido de Aliado [${p.aliado}]`;
-            
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'info',
-                title: 'Datos cargados. Complete motorizado y costo.',
-                showConfirmButton: false,
-                timer: 3500
-            });
-            
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function processPortalPedido(e) {
-            e.preventDefault();
-            const clientName = document.getElementById('port-nombre').value.trim();
-            const clientPhone = document.getElementById('port-telefono').value.trim();
-            const clientDir = document.getElementById('port-direccion').value.trim();
-            const detailText = document.getElementById('port-detalles').value.trim();
-            
-            const numericId = Date.now();
-            const nowVE = new Date();
-            const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
-            const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(nowVE);
-            const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}/${parts.find(p => p.type === 'month').value}/${parts.find(p => p.type === 'year').value}`;
-
-            const pedidoPreRegistro = {
-                id: numericId,
-                fecha: fechaFormatSalida,
-                hora: getVenezuelaTime(),
-                cliente: clientName,
-                telefono: clientPhone,
-                direccion: clientDir,
-                aliado: usuarioActual.aliadoComercial,
-                motorizado: "",
-                costo: 0,
-                detalles: detailText,
-                pendiente_aprobacion: true 
-            };
-
-            Swal.fire({ title: 'Sincronizando con central...', didOpen: () => { Swal.showLoading(); } });
-
-            db.collection('pedidos').add(pedidoPreRegistro).then(() => {
-                Swal.close();
-                document.getElementById('form-portal-aliado').reset();
-                
-                const msgCentralAdmin = encodeURIComponent(
-                    `*📌 NOTIFICACIÓN DE PORTAL DE ALIADOS*\n\n` +
-                    `El aliado comercial *${pedidoPreRegistro.aliado}* ha generado una nueva solicitud de despacho en la plataforma.\n\n` +
-                    `👤 *Cliente:* ${pedidoPreRegistro.cliente}\n` +
-                    `📞 *Teléfono:* +58 ${pedidoPreRegistro.telefono}\n` +
-                    `📍 *Dirección de Entrega:* ${pedidoPreRegistro.direccion}\n` +
-                    `📦 *Detalle del Paquete:* ${pedidoPreRegistro.detalles}\n\n` +
-                    `⚠️ *Acción:* Por favor, ingrese al panel de administración central para asignar la unidad de motorizado y fijar la tarifa de delivery correspondiente.`
-                );
-
-                Swal.fire({
-                    title: "¡Solicitud Enviada!",
-                    text: "Su pedido ha sido indexado. Presione el botón para enviar la notificación a despacho central vía WhatsApp.",
-                    icon: "success",
-                    confirmButtonText: "Notificar por WhatsApp",
-                    confirmButtonColor: "#25d366"
-                }).then(() => {
-                    window.open(`https://api.whatsapp.com/send?phone=584244529892&text=${msgCentralAdmin}`, '_blank');
-                });
-            });
-        }
-
-        function triggerAutocomplete(type) {
-            const valInputTel = document.getElementById("ped-telefono").value.trim().toLowerCase();
-            const valInputNom = document.getElementById("ped-nombre").value.trim().toLowerCase();
-            
-            const boxTel = document.getElementById("sug-telefono");
-            const boxNom = document.getElementById("sug-nombre");
-
-            boxTel.innerHTML = "";
-            boxNom.innerHTML = "";
-            boxTel.style.display = "none";
-            boxNom.style.display = "none";
-
-            if (type === 'telefono' && valInputTel.length >= 2) {
-                const coincidencias = directorioClientes.filter(c => c.telefono.toLowerCase().includes(valInputTel));
-                if (coincidencias.length > 0) {
-                    boxTel.style.display = "block";
-                    coincidencias.forEach(c => {
-                        const div = document.createElement("div");
-                        div.className = "suggestion-item";
-                        div.innerHTML = `<span>📱 <b>${c.telefono}</b></span><span class="sug-meta">${c.nombre}</span>`;
-                        div.onclick = () => fillFormFromSuggestion(c);
-                        boxTel.appendChild(div);
-                    });
-                }
-            } 
-            else if (type === 'nombre' && valInputNom.length >= 2) {
-                const coincidencias = directorioClientes.filter(c => c.nombre.toLowerCase().includes(valInputNom));
-                if (coincidencias.length > 0) {
-                    boxNom.style.display = "block";
-                    coincidencias.forEach(c => {
-                        const div = document.createElement("div");
-                        div.className = "suggestion-item";
-                        div.innerHTML = `<span>👤 <b>${c.nombre}</b></span><span class="sug-meta">${c.telefono}</span>`;
-                        div.onclick = () => fillFormFromSuggestion(c);
-                        boxNom.appendChild(div);
-                    });
-                }
-            }
-        }
-
-        function fillFormFromSuggestion(cliente) {
-            document.getElementById("ped-telefono").value = cliente.telefono;
-            document.getElementById("ped-nombre").value = cliente.nombre;
-            document.getElementById("ped-direccion").value = cliente.direccion;
-            
-            document.getElementById("sug-telefono").style.display = "none";
-            document.getElementById("sug-nombre").style.display = "none";
-
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Cliente cargado con éxito', showConfirmButton: false, timer: 1500 });
-        }
-
-        function saveDirectorioCliente(e) {
-            e.preventDefault();
-            const nom = document.getElementById('cli-nombre').value.trim();
-            const tlf = document.getElementById('cli-telefono').value.trim();
-            const dir = document.getElementById('cli-direccion').value.trim();
-
-            if (editClienteDirId !== null) {
-                db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
-                .then(() => {
-                    editClienteDirId = null;
-                    document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes`;
-                    document.getElementById('btn-submit-cliente-dir').innerHTML = `<i class="fa-solid fa-user-plus"></i> Guardar en Cartera`;
-                    document.getElementById('form-directorio-cliente').reset();
-                    Swal.fire("Actualizado", "Datos del cliente modificados en la nube.", "success");
-                });
-            } else {
-                db.collection('clientes').add({ nombre: nom, telefono: tlf, direccion: dir, creado: Date.now() })
-                .then(() => {
-                    document.getElementById('form-directorio-cliente').reset();
-                    Swal.fire("Guardado", "Cliente nuevo añadido a la cartera comercial.", "success");
-                });
-            }
-        }
-
-        function renderClientesDirectorio() {
-            const tbody = document.getElementById('tabla-clientes-directorio-body');
-            tbody.innerHTML = '';
-            if(directorioClientes.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">Ningún cliente en la base de datos de la cartera.</td></tr>`;
-                return;
-            }
-            directorioClientes.forEach(c => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-bold">${c.nombre}</td>
-                        <td>${c.telefono}</td>
-                        <td>${c.direccion}</td>
-                        <td>
-                            <div class="action-cell">
-                                <button type="button" class="action-btn" onclick="editClienteDir('${c.firestoreId}')">✏️</button>
-                                <button type="button" class="action-btn" onclick="deleteClienteDir('${c.firestoreId}')">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        // Arreglado error de tipado en parámetro al re-guardar clientes autogenerados en processNewPedido
-        function editClienteDir(fId) {
-            const c = directorioClientes.find(item => item.firestoreId === fId);
-            if (!c) return;
-            editClienteDirId = fId;
-            document.getElementById('form-cliente-title').innerHTML = `✏️ Editar Ficha Cliente`;
-            document.getElementById('btn-submit-cliente-dir').innerHTML = `Actualizar Cliente`;
-            document.getElementById('cli-nombre').value = c.nombre;
-            document.getElementById('cli-telefono').value = c.telefono;
-            document.getElementById('cli-direccion').value = c.direccion;
-        }
-
-        function deleteClienteDir(fId) {
-            Swal.fire({
-                title: '¿Eliminar de la cartera?',
-                text: "El cliente ya no aparecerá en las sugerencias automáticas.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ff6600',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Sí, borrar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    db.collection('clientes').doc(fId).delete().then(() => {
-                        Swal.fire('Removido', 'Cliente desvinculado.', 'success');
-                    });
-                }
-            });
-        }
-
-        function limpiarFiltrosBusqueda() {
-            const hoyISO = getVenezuelaDate();
-            document.getElementById('filtro-fecha-desde').value = hoyISO;
-            document.getElementById('filtro-fecha-hasta').value = hoyISO;
-            document.getElementById('filtro-aliado-busqueda').value = "";
-            if(document.getElementById('filtro-motorizado-busqueda')) document.getElementById('filtro-motorizado-busqueda').value = "";
-            renderPedidos();
-        }
-
-        function registerGasto(event) {
-            event.preventDefault();
-            const det = document.getElementById('gasto-detalle').value;
-            const mon = parseFloat(document.getElementById('gasto-monto').value) || 0;
-            
-            db.collection('gastos').add({ detalle: det, monto: mon, fecha: getVenezuelaDate() }).then(() => {
-                document.getElementById('form-gastos').reset();
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado', showConfirmButton: false, timer: 1500 });
-            });
-        }
-
-        function renderGastos() {
-            const container = document.getElementById('expense-container');
-            if (gastos.length === 0) { container.innerHTML = 'Sin egresos registrados.'; return; }
-            container.innerHTML = '';
-            gastos.forEach(g => {
-                container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
-            });
-            renderPedidos(); 
-        }
-
-        function deleteGasto(id) {
-            Swal.fire({
-                title: '¿Eliminar Gasto?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'Eliminar'
-            }).then((res) => {
-                if(res.isConfirmed) db.collection('gastos').doc(id).delete();
-            });
-        }
-
-        function renderPedidos() {
-            const tbody = document.getElementById('tabla-pedidos-body');
-            tbody.innerHTML = '';
-
-            const fDesde = document.getElementById('filtro-fecha-desde').value;
-            const fHasta = document.getElementById('filtro-fecha-hasta').value;
-            
-            const fAliado = usuarioActual.rol === 'aliado' ? usuarioActual.aliadoComercial : document.getElementById('filtro-aliado-busqueda').value;
-            const fMotorizado = usuarioActual.rol === 'aliado' ? "" : document.getElementById('filtro-motorizado-busqueda').value;
-
-            const pedidosFiltrados = pedidos.filter(p => {
-                if (p.pendiente_aprobacion) return false; 
-                const pedidoFechaISO = parseDateVEToISO(p.fecha);
-                if (fDesde && pedidoFechaISO < fDesde) return false;
-                if (fHasta && pedidoFechaISO > fHasta) return false;
-                if (fAliado && p.aliado !== fAliado) return false;
-                if (fMotorizado && p.motorizado !== fMotorizado) return false;
-                return true;
-            });
-
-            let totalIngresos = 0;
-            pedidosFiltrados.forEach(p => {
-                totalIngresos += p.costo;
-            });
-            
-            let totalGastos = 0;
-            if (usuarioActual.rol === 'admin') {
-                const gastosFiltrados = gastos.filter(g => {
-                    if (fDesde && g.fecha < fDesde) return false;
-                    if (fHasta && g.fecha > fHasta) return false;
-                    return true;
-                });
-                gastosFiltrados.forEach(g => totalGastos += g.monto);
-            }
-
-            let neto = totalIngresos - totalGastos;
-
-            document.getElementById('dash-cant-pedidos').innerText = pedidosFiltrados.length;
-            document.getElementById('dash-ingreso-usd').innerText = `$${totalIngresos.toFixed(2)}`;
-            
-            if (usuarioActual.rol === 'admin') {
-                document.getElementById('dash-gasto-usd').innerText = `$${totalGastos.toFixed(2)}`;
-                document.getElementById('dash-balance-neto').innerText = `$${neto.toFixed(2)}`;
-                const boxNeto = document.getElementById('dash-neto-box');
-                if(neto >= 0) { boxNeto.className = "dash-card neto-pos"; } else { boxNeto.className = "dash-card neto-neg"; }
-            }
-
-            if(pedidosFiltrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;" class="text-italic">No hay pedidos registrados con los filtros seleccionados.</td></tr>`;
-                return;
-            }
-
-            pedidosFiltrados.forEach(p => {
-                let btnAcciones = usuarioActual.rol === 'admin' ? `
-                    <td>
-                        <div class="action-cell">
-                            <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
-                            <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
-                        </div>
-                    </td>
-                ` : `<td class="v-admin"></td>`;
-
-                tbody.innerHTML += `
-                    <tr onclick="openReceiptModal('${p.firestoreId}')">
-                        <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
-                        <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
-                        <td>${p.direccion}</td>
-                        <td>${p.aliado}</td>
-                        <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
-                        <td class="text-orange">$${p.costo.toFixed(2)}</td>
-                        <td>${p.detalles}</td>
-                        ${btnAcciones}
-                    </tr>
-                `;
-            });
-        }
-
-        function processNewPedido(e) {
-            e.preventDefault();
-            const clientName = document.getElementById('ped-nombre').value.trim();
-            const clientPhone = document.getElementById('ped-telefono').value.trim();
-            const clientDir = document.getElementById('ped-direccion').value.trim();
-            
-            const chosenAliado = usuarioActual.rol === 'aliado' ? usuarioActual.aliadoComercial : document.getElementById('ped-aliado').value;
-            const chosenMoto = usuarioActual.rol === 'aliado' ? "Pendiente por Asignar" : document.getElementById('ped-motorizado').value;
-            
-            const costValue = parseFloat(document.getElementById('ped-costo').value) || 0;
-            const detailText = document.getElementById('ped-detalles').value || "Despacho";
-
-            const existeCliente = directorioClientes.some(c => c.telefono === clientPhone);
-            if (!existeCliente && clientPhone && clientName) {
-                db.collection('clientes').add({ nombre: clientName, telefono: clientPhone, direccion: clientDir, creado: Date.now() });
-            }
-
-            let pendingReferenceId = null;
-            if (editPedidoId && editPedidoId.startsWith("PENDIENTE_")) {
-                pendingReferenceId = editPedidoId.replace("PENDIENTE_", "");
-            }
-
-            if (editPedidoId !== null && !pendingReferenceId) {
-                db.collection('pedidos').doc(editPedidoId).update({
-                    cliente: clientName, telefono: clientPhone, direccion: clientDir,
-                    aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
-                }).then(() => {
-                    editPedidoId = null;
-                    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
-                    document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
-                    document.getElementById('form-pedido').reset();
-                    Swal.fire("Modificado", "Pedido actualizado con éxito.", "success");
-                    switchTab('gestion');
-                });
-            } else {
-                const numericId = Date.now();
-                const nowVE = new Date();
-                const options = { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' };
-                const parts = new Intl.DateTimeFormat('es-VE', options).formatToParts(nowVE);
-                const fechaFormatSalida = `${parts.find(p => p.type === 'day').value}/${parts.find(p => p.type === 'month').value}/${parts.find(p => p.type === 'year').value}`;
-
-                const nuevoPedido = {
-                    id: numericId,
-                    fecha: fechaFormatSalida,
-                    hora: getVenezuelaTime(),
-                    cliente: clientName, telefono: clientPhone, direccion: clientDir,
-                    aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
-                };
-
-                if (pendingReferenceId) {
-                    db.collection('pedidos').doc(pendingReferenceId).delete();
-                    editPedidoId = null;
-                }
-
-                db.collection('pedidos').add(nuevoPedido).then(() => {
-                    const dataAliado = aliados.find(a => a.nombre === nuevoPedido.aliado) || { telefono: "" };
-                    const dataMoto = motorizados.find(m => m.nombre === nuevoPedido.motorizado) || { telefono: "" };
-                    
-                    const msgCliente = encodeURIComponent(
-                        `*SUN DELIVERY VALENCIA* 🚀\n\n` +
-                        `¡Hola *${nuevoPedido.cliente}*! Tu servicio de entrega ha sido procesado de manera exitosa.\n\n` +
-                        `🏪 *Comercio:* ${nuevoPedido.aliado}\n` +
-                        `🛵 *Repartidor:* ${nuevoPedido.motorizado}\n` +
-                        `📍 *Dirección de Entrega:* ${nuevoPedido.direccion}\n` +
-                        `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
-                        `💵 *Costo Delivery:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
-                        `✨ ¡Muchas gracias por tu preferencia!`
-                    );
-
-                    const msgAliado = encodeURIComponent(
-                        `*NOTIFICACIÓN DE DESPACHO* 🏪\n\n` +
-                        `Estimado aliado comercial de *${nuevoPedido.aliado}*, le informamos que hemos asignado una unidad para su orden.\n\n` +
-                        `🛵 *Motorizado Asignado:* ${nuevoPedido.motorizado}\n` +
-                        `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
-                        `📍 *Destino:* ${nuevoPedido.direccion}\n` +
-                        `📦 *Detalle del Paquete:* ${nuevoPedido.detalles}\n` +
-                        `💵 *Monto de Ruta:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
-                        `🤝 ¡Trabajando juntos para ofrecer el mejor servicio!`
-                    );
-
-                    const msgMotorizado = encodeURIComponent(
-                        `*NUEVA ASIGNACIÓN DE RUTA* 🏍️\n\n` +
-                        `Hola *${nuevoPedido.motorizado}*, tienes un nuevo despacho activo.\n\n` +
-                        `🏪 *Retira en Aliado:* ${nuevoPedido.aliado}\n` +
-                        `👤 *Cliente:* ${nuevoPedido.cliente}\n` +
-                        `📞 *Tlf Cliente:* +58 ${nuevoPedido.telefono}\n` +
-                        `📍 *Dirección:* ${nuevoPedido.direccion}\n` +
-                        `📦 *Detalle:* ${nuevoPedido.detalles}\n` +
-                        `💰 *Cobrar al Cliente:* $${nuevoPedido.costo.toFixed(2)}\n\n` +
-                        `⚠️ *Importante:* Confirmar al llegar al destino.`
-                    );
-
-                    document.getElementById('wa-btn-cliente').href = `https://api.whatsapp.com/send?phone=${nuevoPedido.telefono}&text=${msgCliente}`;
-                    document.getElementById('wa-btn-aliado').href = `https://api.whatsapp.com/send?phone=${dataAliado.telefono}&text=${msgAliado}`;
-                    document.getElementById('wa-btn-motorizado').href = `https://api.whatsapp.com/send?phone=${dataMoto.telefono}&text=${msgMotorizado}`;
-
-                    document.getElementById('form-pedido').reset();
-                    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
-                    document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
-                    document.getElementById('whatsapp-modal').classList.add('active');
-                });
-            }
-        }
-
-        function editPedido(event, fId) {
-            if (event) event.stopPropagation();
-            const p = pedidos.find(item => item.firestoreId === fId);
-            if (!p) return;
-            
-            editPedidoId = fId;
-            document.getElementById('form-pedido-title').innerHTML = `✏️ Editar Pedido Comercial`;
-            document.getElementById('btn-submit-pedido').innerHTML = `Actualizar Pedido`;
-
-            document.getElementById('ped-nombre').value = p.cliente;
-            document.getElementById('ped-telefono').value = p.telefono;
-            document.getElementById('ped-direccion').value = p.direccion;
-            if(usuarioActual.rol === 'admin') document.getElementById('ped-aliado').value = p.aliado;
-            document.getElementById('ped-motorizado').value = p.motorizado;
-            document.getElementById('ped-costo').value = p.costo;
-            document.getElementById('ped-detalles').value = p.detalles;
-            switchTab('agregar');
-        }
-
-        function deletePedido(event, fId) {
-            if (event) event.stopPropagation();
-            Swal.fire({
-                title: '¿Eliminar Pedido?',
-                text: "Esta acción borrará el registro permanente en la nube.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ff6600',
-                confirmButtonText: 'Sí, borrar de la nube'
-            }).then((res) => {
-                if(res.isConfirmed) {
-                    db.collection('pedidos').doc(fId).delete().then(() => {
-                        Swal.fire("Borrado", "El despacho fue eliminado.", "success");
-                    });
-                }
-            });
-        }
-
-        function closeWhatsAppModal() {
-            document.getElementById('whatsapp-modal').classList.remove('active');
-            switchTab('gestion');
-        }
-
-        function renderMotorizados() {
-            const tbody = document.getElementById('tabla-motorizados-body');
-            tbody.innerHTML = '';
-            if(motorizados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay motorizados registrados.</td></tr>`;
-                return;
-            }
-            motorizados.forEach(m => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-bold">${m.nombre}</td>
-                        <td>${m.telefono}</td>
-                        <td><span class="badge-blue">${m.placa}</span></td>
-                        <td>${m.direccion}</td>
-                        <td>
-                            <div class="action-cell">
-                                <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')">✏️</button>
-                                <button type="button" class="action-btn" onclick="deleteMotorizado('${m.firestoreId}')">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        function saveMotorizado(e) {
-            e.preventDefault();
-            const nom = document.getElementById('moto-nombre').value;
-            const tlf = document.getElementById('moto-telefono').value;
-            const plc = document.getElementById('moto-placa').value;
-            const dir = document.getElementById('moto-direccion').value;
-
-            if (editMotoId !== null) {
-                db.collection('motorizados').doc(editMotoId).update({ nombre: nom, telefono: tlf, placa: plc, direccion: dir })
-                .then(() => {
-                    editMotoId = null;
-                    document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores`;
-                    document.getElementById('btn-submit-moto').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Repartidor`;
-                    document.getElementById('form-motorizado').reset();
-                    Swal.fire("Listo", "Motorizado actualizado.", "success");
-                });
-            } else {
-                db.collection('motorizados').add({ id: Date.now(), nombre: nom, telefono: tlf, placa: plc, direccion: dir })
-                .then(() => {
-                    document.getElementById('form-motorizado').reset();
-                    Swal.fire("Registrado", "Nuevo repartidor en línea.", "success");
-                });
-            }
-        }
-
-        function editMotorizado(fId) {
-            const m = motorizados.find(item => item.firestoreId === fId);
-            if (!m) return;
-            editMotoId = fId;
-            document.getElementById('form-moto-title').innerHTML = `✏️ Editar Motorizado`;
-            document.getElementById('btn-submit-moto').innerHTML = `Actualizar`;
-            document.getElementById('moto-nombre').value = m.nombre;
-            document.getElementById('moto-telefono').value = m.telefono;
-            document.getElementById('moto-placa').value = m.placa;
-            document.getElementById('moto-direccion').value = m.direccion;
-        }
-
-        function deleteMotorizado(fId) {
-            Swal.fire({ title: '¿Dar de baja repartidor?', icon: 'warning', showCancelButton: true }).then(r => {
-                if(r.isConfirmed) db.collection('motorizados').doc(fId).delete();
-            });
-        }
-
-        function renderAliados() {
-            const tbody = document.getElementById('tabla-aliados-body');
-            tbody.innerHTML = '';
-            if(aliados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay aliados comerciales registrados.</td></tr>`;
-                return;
-            }
-            aliados.forEach(a => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="text-bold">${a.nombre}</td>
-                        <td style="color:#64748b; font-weight:600;">${a.usuario || 'No asignado'}</td>
-                        <td>${a.telefono}</td>
-                        <td>${a.direccion}</td>
-                        <td>
-                            <div class="action-cell">
-                                <button type="button" class="action-btn" onclick="editAliado('${a.firestoreId}')">✏️</button>
-                                <button type="button" class="action-btn" onclick="deleteAliado('${a.firestoreId}')">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-        }
-
-        function saveAliado(e) {
-            e.preventDefault();
-            const nom = document.getElementById('aliado-nombre').value.trim();
-            const usrVal = document.getElementById('aliado-usuario').value.trim(); 
-            const pinVal = document.getElementById('aliado-pin').value.trim();
-            const tlf = document.getElementById('aliado-telefono').value;
-            const dir = document.getElementById('aliado-direccion').value;
-
-            if (editAliadoId !== null) {
-                db.collection('aliados').doc(editAliadoId).update({ nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
-                .then(() => {
-                    editAliadoId = null;
-                    document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado`;
-                    document.getElementById('btn-submit-aliado').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Comercio`;
-                    document.getElementById('form-aliado').reset();
-                    Swal.fire("Completado", "Aliado comercial modificado.", "success");
-                });
-            } else {
-                db.collection('aliados').add({ id: Date.now(), nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
-                .then(() => {
-                    document.getElementById('form-aliado').reset();
-                    Swal.fire("Perfecto", "Comercio aliado agregado con su respectiva clave y usuario.", "success");
-                });
-            }
-        }
-
-        function editAliado(fId) {
-            const a = aliados.find(item => item.firestoreId === fId);
-            if (!a) return;
-            editAliadoId = fId;
-            document.getElementById('form-aliado-title').innerHTML = `✏️ Editar Aliado Comercial`;
-            document.getElementById('btn-submit-aliado').innerHTML = `Actualizar`;
-            document.getElementById('aliado-nombre').value = a.nombre;
-            document.getElementById('aliado-usuario').value = a.usuario || ""; 
-            document.getElementById('aliado-pin').value = a.pin || "";
-            document.getElementById('aliado-telefono').value = a.telefono;
-            document.getElementById('aliado-direccion').value = a.direccion;
-        }
-
-        function deleteAliado(fId) {
-            Swal.fire({ title: '¿Remover Aliado de la red?', icon: 'warning', showCancelButton: true }).then(r => {
-                if(r.isConfirmed) db.collection('aliados').doc(fId).delete();
-            });
-        }
-
-        function updateSelectDropdowns() {
-            const pAliado = document.getElementById('ped-aliado');
-            const pMoto = document.getElementById('ped-motorizado');
-            const iAliado = document.getElementById('invoice-aliado');
-            const bAliado = document.getElementById('filtro-aliado-busqueda');
-            const bMotorizado = document.getElementById('filtro-motorizado-busqueda');
-            const iMotorizadoPayroll = document.getElementById('invoice-motorizado-payroll');
-
-            const currentPAliado = pAliado.value;
-            const currentPMoto = pMoto.value;
-            const currentIAliado = iAliado.value;
-            const currentBAliado = bAliado.value;
-            const currentBMotorizado = bMotorizado ? bMotorizado.value : "";
-            const currentIMotoPayroll = iMotorizadoPayroll.value;
-
-            pAliado.innerHTML = '<option value="">Seleccione un aliado...</option>';
-            pMoto.innerHTML = '<option value="">Seleccione un motorizado...</option>';
-            iAliado.innerHTML = '<option value="">Seleccione Aliado...</option><option value="TODOS_LOS_ALIADOS">-- SELECCIONAR TODOS LOS ALIADOS --</option>';
-            if(bAliado) bAliado.innerHTML = '<option value="">Todos los Aliados</option>';
-            if(bMotorizado) bMotorizado.innerHTML = '<option value="">Todos los Motorizados</option>';
-            iMotorizadoPayroll.innerHTML = '<option value="">Seleccione Motorizado...</option>';
-
-            aliados.forEach(a => {
-                pAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
-                iAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
-                if(bAliado) bAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
-            });
-            motorizados.forEach(m => {
-                pMoto.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
-                if(bMotorizado) bMotorizado.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
-                iMotorizadoPayroll.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
-            });
-
-            if(currentPAliado) pAliado.value = currentPAliado;
-            if(currentPMoto) pMoto.value = currentPMoto;
-            if(currentIAliado) iAliado.value = currentIAliado;
-            if(currentBAliado) bAliado.value = currentBAliado;
-            if(bMotorizado && currentBMotorizado) bMotorizado.value = currentBMotorizado;
-            if(currentIMotoPayroll) iMotorizadoPayroll.value = currentIMotoPayroll;
-        }
-
-        function generateAliadoInvoice() {
-            const nombreAliado = document.getElementById('invoice-aliado').value;
-            const fechaDesde = document.getElementById('invoice-fecha-desde').value;
-            const fechaHasta = document.getElementById('invoice-fecha-hasta').value;
-            
-            if (!nombreAliado) { Swal.fire("Campo requerido", "Selecciona un aliado comercial.", "info"); return; }
-            if (!fechaDesde || !fechaHasta) { Swal.fire("Fechas faltantes", "Asigna el rango temporal.", "info"); return; }
-
-            const tasa = parseFloat(document.getElementById('invoice-tasa').value) || 45.50;
-
-            const pedidosFiltrados = pedidos.filter(p => {
-                if (p.pendiente_aprobacion) return false; 
-                const pedidoFechaISO = parseDateVEToISO(p.fecha);
-                if (nombreAliado !== "TODOS_LOS_ALIADOS" && p.aliado !== nombreAliado) return false;
-                if (pedidoFechaISO < fechaDesde || pedidoFechaISO > fechaHasta) return false;
-                return true;
-            });
-
-            if (pedidosFiltrados.length === 0) {
-                Swal.fire("Sin datos", "No existen órdenes registradas en esos días para la selección.", "info");
-                return;
-            }
-
-            document.getElementById('fact-titulo-documento').innerText = "FACTURA CONSOLIDADA DE COBRO";
-
-            if(nombreAliado === "TODOS_LOS_ALIADOS") {
-                document.getElementById('fact-bloque-entidad').innerHTML = `<b>Aliado Comercial:</b> <span>CONSOLIDADO GLOBAL</span>`;
-            } else {
-                document.getElementById('fact-bloque-entidad').innerHTML = `<b>Aliado Comercial:</b> <span>${nombreAliado}</span>`;
-            }
-
-            const fDesdeFormateada = fechaDesde.split('-').reverse().join('/');
-            const fHastaFormateada = fechaHasta.split('-').reverse().join('/');
-            document.getElementById('fact-fecha-relacion').innerText = `${fDesdeFormateada} al ${fHastaFormateada}`;
-            document.getElementById('fact-tasa').innerText = tasa.toFixed(2);
-
-            const tbodyFactura = document.getElementById('fact-detalles-ordenes');
-            tbodyFactura.innerHTML = '';
-            
-            let acumuladoUSD = 0;
-            pedidosFiltrados.forEach(p => {
-                acumuladoUSD += p.costo;
-                const tagAliado = nombreAliado === "TODOS_LOS_ALIADOS" ? `[${p.aliado}] ` : '';
-                
-                tbodyFactura.innerHTML += `
-                    <tr style="border-bottom: 1px dashed #dddddd;">
-                        <td style="padding: 6px 0;">${tagAliado}${p.cliente} <span style="font-size:0.65rem; color:#666;">(${p.fecha})</span><br><span style="font-size:0.65rem; color:#666;">Moto: ${p.motorizado}</span></td>
-                        <td style="padding: 6px 0; text-align: right; font-weight: bold;">$${p.costo.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-
-            document.getElementById('fact-total-usd').innerText = acumuladoUSD.toFixed(2);
-            document.getElementById('fact-total-bs').innerText = FormatearBs(acumuladoUSD * tasa);
-            document.getElementById('footer-pago-movil').innerHTML = "<b>Banco:</b> Banesco / Venezuela<br><b>Teléfono:</b> 04244529892<br><b>RIF:</b> 18410871";
-
-            renderInvoiceToImage(nombreAliado === "TODOS_LOS_ALIADOS" ? "Consolidado_General" : nombreAliado);
-        }
-
-        function FormatearBs(monto) {
-            return monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function AntiXSS(str) {
-            return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-
-        function openReceiptModal(fId) {
-            selectedPedido = pedidos.find(p => p.firestoreId === fId);
-            if(!selectedPedido) return;
-
-            document.getElementById('tkt-cliente').innerText = selectedPedido.cliente;
-            document.getElementById('tkt-tlf').innerText = selectedPedido.telefono;
-            document.getElementById('tkt-dir').innerText = selectedPedido.direccion;
-            document.getElementById('tkt-aliado').innerText = selectedPedido.aliado;
-            document.getElementById('tkt-moto').innerText = selectedPedido.motorizado || 'No asignado';
-            document.getElementById('modal-monto').value = selectedPedido.costo.toFixed(2);
-
-            updateTicketCalculations();
-            document.getElementById('receipt-modal').classList.add('active');
-        }
-
-        function updateTicketCalculations() {
-            const tasa = parseFloat(document.getElementById('modal-tasa').value) || 0;
-            const usd = parseFloat(document.getElementById('modal-monto').value) || 0;
-            document.getElementById('tkt-tasa-text').innerText = tasa.toFixed(2);
-            document.getElementById('tkt-usd-text').innerText = usd.toFixed(2);
-            document.getElementById('tkt-bs-text').innerText = FormatearBs(usd * tasa);
-        }
-
-        function closeReceiptModal() {
-            document.getElementById('receipt-modal').classList.remove('active');
-        }
-
-        function triggerDownloadJPG() {
-            const ticketArea = document.getElementById('print-ticket-area');
-            Swal.fire({
-                title: 'Generando Imagen...',
-                html: 'Espere por favor.',
-                didOpen: () => { Swal.showLoading(); }
-            });
-
-            html2canvas(ticketArea, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                const link = document.createElement('a');
-                link.href = imgData;
-                const nombreCliente = document.getElementById('tkt-cliente').innerText.replace(/\s+/g, '_') || 'Ticket';
-                link.download = `Ticket_${nombreCliente}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                Swal.close();
-            }).catch(err => {
-                console.error(err);
-                Swal.fire("Error", "No se pudo compilar la captura del ticket.", "error");
-            });
-        }
-
-        // INICIALIZACIÓN GLOBAL DE DATOS (Solución al login de aliados vacíos)
-        syncCloudData();
+    });
+}
+
+Function closeWhatsAppModal() {
+    Document.getElementById('whatsapp-modal').classList.remove('active');
+    SwitchTab('gestion');
+}
+
+Function renderMotorizados() {
+    Const tbody = document.getElementById('tabla-motorizados-body');
+    Tbody.innerHTML = '';
+    If(motorizados.length === 0) {
+        Tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay motorizados registrados.</td></tr>`;
+        Return;
+    }
+    Motorizados.forEach(m => {
+        Tbody.innerHTML += `
+            <tr>
+                <td class="text-bold">${m.nombre}</td>
+                <td>${m.telefono}</td>
+                <td><span class="badge-blue">${m.placa}</span></td>
+                <td>${m.direccion}</td>
+                <td>
+                    <div class="action-cell">
+                        <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')">✏️</button>
+                        <button type="button" class="action-btn" onclick="deleteMotorizado('${m.firestoreId}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+Function saveMotorizado(e) {
+    E.preventDefault();
+    Const nom = document.getElementById('moto-nombre').value;
+    Const tlf = document.getElementById('moto-telefono').value;
+    Const plc = document.getElementById('moto-placa').value;
+    Const dir = document.getElementById('moto-direccion').value;
+
+    If (editMotoId !== null) {
+        Db.collection('motorizados').doc(editMotoId).update({ nombre: nom, telefono: tlf, placa: plc, direccion: dir })
+        .then(() => {
+            EditMotoId = null;
+            Document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores`;
+            Document.getElementById('btn-submit-moto').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Repartidor`;
+            Document.getElementById('form-motorizado').reset();
+            Swal.fire("Listo", "Motorizado actualizado.", "success");
+        });
+    } else {
+        Db.collection('motorizados').add({ id: Date.now(), nombre: nom, telefono: tlf, placa: plc, direccion: dir })
+        .then(() => {
+            Document.getElementById('form-motorizado').reset();
+            Swal.fire("Registrado", "Nuevo repartidor en línea.", "success");
+        });
+    }
+}
+
+Function editMotorizado(fId) {
+    Const m = motorizados.find(item => item.firestoreId === fId);
+    If (!m) return;
+    EditMotoId = fId;
+    Document.getElementById('form-moto-title').innerHTML = `✏️ Editar Motorizado`;
+    Document.getElementById('btn-submit-moto').innerHTML = `Actualizar`;
+    Document.getElementById('moto-nombre').value = m.nombre;
+    Document.getElementById('moto-telefono').value = m.telefono;
+    Document.getElementById('moto-placa').value = m.placa;
+    Document.getElementById('moto-direccion').value = m.direccion;
+}
+
+Function deleteMotorizado(fId) {
+    Swal.fire({ title: '¿Dar de baja repartidor?', icon: 'warning', showCancelButton: true }).then(r => {
+        If(r.isConfirmed) db.collection('motorizados').doc(fId).delete();
+    });
+}
+
+Function renderAliados() {
+    Const tbody = document.getElementById('tabla-aliados-body');
+    Tbody.innerHTML = '';
+    If(aliados.length === 0) {
+        Tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay aliados comerciales registrados.</td></tr>`;
+        Return;
+    }
+    Aliados.forEach(a => {
+        Tbody.innerHTML += `
+            <tr>
+                <td class="text-bold">${a.nombre}</td>
+                <td style="color:#64748b; font-weight:600;">${a.usuario || 'No asignado'}</td>
+                <td>${a.telefono}</td>
+                <td>${a.direccion}</td>
+                <td>
+                    <div class="action-cell">
+                        <button type="button" class="action-btn" onclick="editAliado('${a.firestoreId}')">✏️</button>
+                        <button type="button" class="action-btn" onclick="deleteAliado('${a.firestoreId}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+Function saveAliado(e) {
+    E.preventDefault();
+    Const nom = document.getElementById('aliado-nombre').value.trim();
+    Const usrVal = document.getElementById('aliado-usuario').value.trim(); 
+    Const pinVal = document.getElementById('aliado-pin').value.trim();
+    Const tlf = document.getElementById('aliado-telefono').value;
+    Const dir = document.getElementById('aliado-direccion').value;
+
+    If (editAliadoId !== null) {
+        Db.collection('aliados').doc(editAliadoId).update({ nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
+        .then(() => {
+            EditAliadoId = null;
+            Document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado`;
+            Document.getElementById('btn-submit-aliado').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Comercio`;
+            Document.getElementById('form-aliado').reset();
+            Swal.fire("Completado", "Aliado comercial modificado.", "success");
+        });
+    } else {
+        Db.collection('aliados').add({ id: Date.now(), nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
+        .then(() => {
+            Document.getElementById('form-aliado').reset();
+            Swal.fire("Perfecto", "Comercio aliado agregado con su respectiva clave y usuario.", "success");
+        });
+    }
+}
+
+Function editAliado(fId) {
+    Const a = aliados.find(item => item.firestoreId === fId);
+    If (!a) return;
+    EditAliadoId = fId;
+    Document.getElementById('form-aliado-title').innerHTML = `✏️ Editar Aliado Comercial`;
+    Document.getElementById('btn-submit-aliado').innerHTML = `Actualizar`;
+    Document.getElementById('aliado-nombre').value = a.nombre;
+    Document.getElementById('aliado-usuario').value = a.usuario || ""; 
+    Document.getElementById('aliado-pin').value = a.pin || "";
+    Document.getElementById('aliado-telefono').value = a.telefono;
+    Document.getElementById('aliado-direccion').value = a.direccion;
+}
+
+Function deleteAliado(fId) {
+    Swal.fire({ title: '¿Remover Aliado de la red?', icon: 'warning', showCancelButton: true }).then(r => {
+        If(r.isConfirmed) db.collection('aliados').doc(fId).delete();
+    });
+}
+
+Function updateSelectDropdowns() {
+    Const pAliado = document.getElementById('ped-aliado');
+    Const pMoto = document.getElementById('ped-motorizado');
+    Const iAliado = document.getElementById('invoice-aliado');
+    Const bAliado = document.getElementById('filtro-aliado-busqueda');
+    Const bMotorizado = document.getElementById('filtro-motorizado-busqueda');
+    Const iMotorizadoPayroll = document.getElementById('invoice-motorizado-payroll');
+
+    Const currentPAliado = pAliado.value;
+    Const currentPMoto = pMoto.value;
+    Const currentIAliado = iAliado.value;
+    Const currentBAliado = bAliado.value;
+    Const currentBMotorizado = bMotorizado ? BMotorizado.value : "";
+    Const currentIMotoPayroll = iMotorizadoPayroll.value;
+
+    PAliado.innerHTML = '<option value="">Seleccione un aliado...</option>';
+    PMoto.innerHTML = '<option value="">Seleccione un motorizado...</option>';
+    IAliado.innerHTML = '<option value="">Seleccione Aliado...</option><option value="TODOS_LOS_ALIADOS">-- SELECCIONAR TODOS LOS ALIADOS --</option>';
+    If(bAliado) bAliado.innerHTML = '<option value="">Todos los Aliados</option>';
+    If(bMotorizado) bMotorizado.innerHTML = '<option value="">Todos los Motorizados</option>';
+    IMotorizadoPayroll.innerHTML = '<option value="">Seleccione Motorizado...</option>';
+
+    Aliados.forEach(a => {
+        PAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+        IAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+        If(bAliado) bAliado.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`;
+    });
+    Motorizados.forEach(m => {
+        PMoto.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
+        If(bMotorizado) bMotorizado.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
+        IMotorizadoPayroll.innerHTML += `<option value="${m.nombre}">${m.nombre}</option>`;
+    });
+
+    If(currentPAliado) pAliado.value = currentPAliado;
+    If(currentPMoto) pMoto.value = currentPMoto;
+    If(currentIAliado) iAliado.value = currentIAliado;
+    If(currentBAliado) bAliado.value = currentBAliado;
+    If(bMotorizado && currentBMotorizado) bMotorizado.value = currentBMotorizado;
+    If(currentIMotoPayroll) iMotorizadoPayroll.value = currentIMotoPayroll;
+}
+
+Function FormatearBs(monto) {
+    Return monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+Function AntiXSS(str) {
+    Return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+Function openReceiptModal(fId) {
+    SelectedPedido = pedidos.find(p => p.firestoreId === fId);
+    If(!selectedPedido) return;
+
+    Document.getElementById('tkt-cliente').innerText = selectedPedido.cliente;
+    Document.getElementById('tkt-tlf').innerText = selectedPedido.telefono;
+    Document.getElementById('tkt-dir').innerText = selectedPedido.direccion;
+    Document.getElementById('tkt-aliado').innerText = selectedPedido.aliado;
+    Document.getElementById('tkt-moto').innerText = selectedPedido.motorizado || 'No asignado';
+    Document.getElementById('modal-monto').value = selectedPedido.costo.toFixed(2);
+
+    UpdateTicketCalculations();
+    Document.getElementById('receipt-modal').classList.add('active');
+}
+
+Function updateTicketCalculations() {
+    Const tasa = parseFloat(document.getElementById('modal-tasa').value) || 0;
+    Const usd = parseFloat(document.getElementById('modal-monto').value) || 0;
+    Document.getElementById('tkt-tasa-text').innerText = tasa.toFixed(2);
+    Document.getElementById('tkt-usd-text').innerText = usd.toFixed(2);
+    Document.getElementById('tkt-bs-text').innerText = FormatearBs(usd * tasa);
+}
+
+Function closeReceiptModal() {
+    Document.getElementById('receipt-modal').classList.remove('active');
+}
+
+Function triggerDownloadJPG() {
+    Const ticketArea = document.getElementById('print-ticket-area');
+    Swal.fire({
+        Title: 'Generando Imagen...',
+        Html: 'Espere por favor.',
+        DidOpen: () => { Swal.showLoading(); }
+    });
+
+    Html2canvas(ticketArea, { useCORS: true, scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+        Const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        Const link = document.createElement('a');
+        Link.href = imgData;
+        Const nombreCliente = document.getElementById('tkt-cliente').innerText.replace(/\s+/g, '_') || 'Ticket';
+        Link.download = `Ticket_${nombreCliente}.jpg`;
+        Document.body.appendChild(link);
+        Link.click();
+        Document.body.removeChild(link);
+        Swal.close();
+    }).catch(err => {
+        Console.error(err);
+        Swal.fire("Error", "No se pudo compilar la captura del ticket.", "error");
+    });
+}
+
+// INICIALIZACIÓN GLOBAL DE DATOS
+SyncCloudData();

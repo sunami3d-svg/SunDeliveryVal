@@ -5,20 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SUNDELIVERY Valencia (Cloud Premium)</title>
     
+    <!-- Fuentes tipográficas -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Iconos y librerías auxiliares -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
+    <!-- Firebase Compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-        <style>
-        /* IMPORTACIÓN DE FUENTES EJECUTIVAS Y MODERNAS */
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
 
+    <style>
         /* ESTILOS BASE Y PALETA DE MARCA SUNDELIVERY */
         * {
             margin: 0;
@@ -65,7 +66,7 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
-        /* PANTALLA DE LOGIN CON ESTILO CORRUGADO Y BRONCE */
+        /* PANTALLA DE LOGIN */
         #login-view {
             background: radial-gradient(circle at center, #1a1a1a 0%, #0a0a0a 100%);
             display: flex;
@@ -84,7 +85,7 @@
             border-radius: 24px;
             padding: 40px 30px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
-            border-top: 6px solid #cd7f32; /* Borde bronce */
+            border-top: 6px solid #cd7f32;
             border-bottom: 1px solid rgba(205, 127, 50, 0.2);
             text-align: center;
         }
@@ -175,7 +176,7 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            border-bottom: 2px solid #cd7f32; /* Borde inferior bronce */
+            border-bottom: 2px solid #cd7f32;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             padding: 0 10px;
         }
@@ -265,7 +266,7 @@
             gap: 8px;
         }
 
-        /* FORMULARIOS CON ESTILO ELEGANTE */
+        /* FORMULARIOS */
         .form-group {
             margin-bottom: 18px;
             position: relative;
@@ -302,7 +303,7 @@
         }
         .form-row-2 .form-group { flex: 1; }
 
-        /* BOTONES PRINCIPALES Y SECUNDARIOS */
+        /* BOTONES */
         .btn-submit {
             width: 100%;
             background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%);
@@ -367,7 +368,7 @@
         .suggestion-item:last-child { border-bottom: none; }
         .suggestion-item .sug-meta { color: #a0a0a0; font-size: 0.78rem; font-weight: 500; }
 
-        /* INDICADORES Y MÉTRICAS (DASHBOARD) */
+        /* DASHBOARD */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -405,7 +406,7 @@
         .dash-card.neto-pos .value { color: #10b981; }
         .dash-card.neto-neg .value { color: #ef4444; }
 
-        /* TABLAS EJECUTIVAS */
+        /* TABLAS */
         .table-section-title {
             font-size: 1.05rem;
             color: #ffffff;
@@ -432,7 +433,7 @@
         }
         th {
             background-color: #141414;
-            color: #cd7f32; /* Texto del encabezado en bronce */
+            color: #cd7f32;
             font-weight: 700;
             padding: 14px 12px;
             white-space: nowrap;
@@ -483,8 +484,7 @@
         }
         .action-btn:hover { background-color: #cd7f32; border-color: #cd7f32; transform: scale(1.05); }
 
-        /* REPORTES Y GASTOS */
-        .income-report-grid { display: none; }
+        /* GASTOS */
         .expense-list {
             margin-top: 18px;
             background-color: #141414;
@@ -504,7 +504,7 @@
         }
         .expense-item:last-child { border-bottom: none; }
 
-        /* MODALES Y OVERLAYS */
+        /* MODALES */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -591,13 +591,13 @@
         .btn-modal-download { background-color: #25d366; color: #ffffff; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.2); }
         .btn-modal-download:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(37, 211, 102, 0.3); }
 
-        /* DISEÑO DE FACTURA INTERNA */
+        /* FACTURA INTERNA */
         #recibo-diseno-factura {
             display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 360px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
         }
         #seccion-vista-previa img { box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 12px; }
 
-        /* SELECTOR DE LOGIN Y PORTAL DE ALIADOS */
+        /* TOGGLE LOGIN & PORTAL ALIADOS */
         .login-toggle-container {
             display: flex;
             background: #141414;
@@ -642,12 +642,12 @@
             border: 1px solid #2d2d2d;
         }
     </style>
-
 </head>
 <body>
 
     <div id="contenedor-alertas-flotantes"></div>
 
+    <!-- PANTALLA DE LOGIN -->
     <div id="login-view">
         <div class="login-card">
             <img src="3871.jpg" alt="SunDelivery Logo" class="brand-logo-login">
@@ -672,14 +672,12 @@
         </div>
     </div>
 
-    <!-- INTERFAZ COMPLETA DEL PORTAL DE PEDIDOS ALIADOS -->
+    <!-- PORTAL DE PEDIDOS ALIADOS -->
     <div id="portal-aliado-container">
         <div class="portal-header">
             <i class="fa-solid fa-shop"></i> Portal de Pedidos Aliados - <span id="portal-nombre-aliado"></span>
         </div>
         <div style="padding: 20px;">
-            
-            <!-- AVISO DE BIENVENIDA PROFESIONAL -->
             <div style="background-color: #fff5e6; border-left: 5px solid #ff6600; padding: 15px; margin-bottom: 20px; border-radius: 6px; color: #333; font-size: 0.95rem; line-height: 1.4;">
                 <strong style="color: #ff6600;"><i class="fa-solid fa-circle-info"></i> ¡Bienvenido al Portal de Aliados!</strong><br>
                 Para garantizar un servicio óptimo, recuerde verificar el costo y la zona de entrega con el equipo de <strong>SUNDELIVERY</strong> antes de registrar el pedido.
@@ -706,8 +704,7 @@
                 <button type="button" class="btn-submit btn-dark-blue" style="margin-top:10px;" onclick="logoutPortal()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
             </form>
 
-            <!-- MONITOR DE PEDIDOS PROPIOS DEL ALIADO -->
-            <div class="table-section-title" style="margin-top: 35px;"><i class="fa-solid fa-clock-history" style="color:#0f172a"></i> Historial y Rastreo de Despachos</div>
+            <div class="table-section-title" style="margin-top: 35px;"><i class="fa-solid fa-clock-rotate-left" style="color:#ff6600"></i> Historial y Rastreo de Despachos</div>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -720,14 +717,13 @@
                             <th>Costo Delivery</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-portal-aliado-body">
-                        <!-- Generado dinámicamente -->
-                    </tbody>
+                    <tbody id="tabla-portal-aliado-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <!-- PANEL PRINCIPAL (ADMIN / OPERATIVO) -->
     <div id="app-container">
         <header class="main-header">
             <div class="header-brand">
@@ -743,6 +739,7 @@
             </nav>
         </header>
 
+        <!-- PESTAÑA: AGREGAR PEDIDO -->
         <div id="view-agregar" class="view-section active">
             <div class="card-panel v-admin" style="border-left: 5px solid #10b981;">
                 <div class="panel-title" style="border:none; padding:0; margin-bottom:12px;"><i class="fa-solid fa-sliders" style="color:#10b981"></i> Ajustes Operativos</div>
@@ -798,7 +795,7 @@
                 </form>
             </div>
 
-            <!-- BANDEJA DE PEDIDOS PENDIENTES ENTRANTES DE ALIADOS -->
+            <!-- PEDIDOS PENDIENTES ENTRANTES DE ALIADOS -->
             <div class="card-panel v-admin" id="panel-pendientes-aliados-box" style="border-left: 5px solid #ff6600;">
                 <div class="table-section-title" style="margin-bottom:12px;"><i class="fa-solid fa-bell" style="color:#ff6600"></i> 📥 Pedidos Pendientes de Aliados</div>
                 <div class="table-responsive" style="margin-bottom:0;">
@@ -818,6 +815,7 @@
             </div>
         </div>
 
+        <!-- PESTAÑA: GESTIÓN DE PEDIDOS -->
         <div id="view-gestion" class="view-section">
             <div class="dashboard-grid">
                 <div class="dash-card"><div class="title">Órdenes</div><div class="value" id="dash-cant-pedidos">0</div></div>
@@ -909,6 +907,7 @@
                 </a>
             </div>
 
+            <!-- PLANTILLA DE FACTURA OCULTA PARA HTML2CANVAS -->
             <div id="recibo-diseno-factura">
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1;">
                     <img src="3871.jpg" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.16; filter: contrast(108%);">
@@ -958,6 +957,7 @@
             </div>
         </div>
 
+        <!-- PESTAÑA: CLIENTES -->
         <div id="view-clientes" class="view-section">
             <div class="card-panel">
                 <div class="panel-title" id="form-cliente-title"><i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes</div>
@@ -977,6 +977,7 @@
             </div>
         </div>
 
+        <!-- PESTAÑA: MOTORIZADOS -->
         <div id="view-motorizados" class="view-section">
             <div class="card-panel">
                 <div class="panel-title" id="form-moto-title"><i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores</div>
@@ -996,6 +997,7 @@
             </div>
         </div>
 
+        <!-- PESTAÑA: ALIADOS -->
         <div id="view-aliados" class="view-section">
             <div class="card-panel">
                 <div class="panel-title" id="form-aliado-title"><i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado</div>
@@ -1017,6 +1019,7 @@
         </div>
     </div>
 
+    <!-- MODAL WHATSAPP -->
     <div id="whatsapp-modal" class="modal-overlay">
         <div class="modal-body">
             <div class="wa-share-title">🚀 ¡Pedido Sincronizado en la Nube!</div>
@@ -1029,6 +1032,7 @@
         </div>
     </div>
 
+    <!-- MODAL TICKET COMPROBANTE -->
     <div id="receipt-modal" class="modal-overlay">
         <div class="modal-body">
             <div class="receipt-config-box">
@@ -1061,8 +1065,8 @@
         </div>
     </div>
 
-    <script>
-        <script src="./firebase-config.js"></script>
-<script src="./app.js"></script>
+    <!-- CÓDIGO JS PRINCIPAL -->
+    <script src="./firebase-config.js"></script>
+    <script src="./app.js"></script>
 </body>
 </html>
