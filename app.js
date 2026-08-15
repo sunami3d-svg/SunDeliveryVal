@@ -5,7 +5,6 @@ function getVenezuelaDate() {
     return `${parts.find(p => p.type === 'year').value}-${parts.find(p => p.type === 'month').value}-${parts.find(p => p.type === 'day').value}`;
 }
 
-// Convierte YYYY-MM-DD (del input date) a DD/MM/YYYY (para guardar/mostrar)
 function formatISOToVE(isoDateStr) {
     if (!isoDateStr) return "";
     const parts = isoDateStr.split("-");
@@ -26,7 +25,6 @@ function getVenezuelaTime() {
     return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
 }
 
-// Tarifario Estándar de Zonas (Valencia y zonas aledañas)
 const TARIFARIO_ZONAS = {
     "El Parral / Prebo / Kratos": 2.50,
     "El Bosque / La Viña / Trigaleña": 3.00,
@@ -56,7 +54,6 @@ let porcComisionMotorizado = 0.70;
 let cargaInicialPedidos = true;
 let rolSeleccionadoLogin = "admin"; 
 
-// Asignación Global para eventos HTML
 window.setLoginRole = function(role) {
     rolSeleccionadoLogin = role;
     const btnAdmin = document.getElementById('toggle-admin');
@@ -137,7 +134,6 @@ window.logoutPortal = function() {
     usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
 };
 
-// Cotizador de Tarifas en el Portal Aliado
 function initCotizadorAliado() {
     const selectZona = document.getElementById('port-cotizador-zona');
     if (!selectZona) return;
@@ -157,6 +153,35 @@ window.calcularTarifaCotizador = function() {
     displayTarifa.innerText = tarifa > 0 ? `$${tarifa.toFixed(2)}` : '$0.00';
 };
 
+// FUNCION DE ESTADO EN TIEMPO REAL CON BARRA DE PROGRESO VISUAL
+function obtenerBarraEstatus(p) {
+    let paso1 = "active", paso2 = "", paso3 = "", paso4 = "";
+    let textoEstatus = "Solicitado";
+
+    if (p.completado) {
+        paso1 = "active"; paso2 = "active"; paso3 = "active"; paso4 = "active";
+        textoEstatus = "Entregado";
+    } else if (p.motorizado && p.motorizado !== "Por asignar" && p.motorizado !== "Pendiente por Asignar") {
+        paso1 = "active"; paso2 = "active"; paso3 = "active";
+        textoEstatus = "En Ruta";
+    } else if (!p.pendiente_aprobacion) {
+        paso1 = "active"; paso2 = "active";
+        textoEstatus = "Asignado Central";
+    }
+
+    return `
+        <div class="status-tracker-container" style="font-size:0.75rem;">
+            <div style="font-weight:bold; margin-bottom:4px; color:#ff6600;">📌 ${textoEstatus}</div>
+            <div style="display:flex; gap:4px; align-items:center;">
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso1 ? '#ff6600' : '#cbd5e1'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso2 ? '#ff6600' : '#cbd5e1'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso3 ? '#0284c7' : '#cbd5e1'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso4 ? '#10b981' : '#cbd5e1'};"></span>
+            </div>
+        </div>
+    `;
+}
+
 function renderPedidosPortalAliado() {
     const tbody = document.getElementById('tabla-portal-aliado-body');
     if (!tbody) return;
@@ -167,7 +192,6 @@ function renderPedidosPortalAliado() {
     
     const todosMisPedidos = [...misPendientes, ...misAprobados].sort((a, b) => b.id - a.id);
 
-    // Actualizar Tarjetas del Dashboard del Aliado
     let cantPendientes = misPendientes.length;
     let cantAprobados = misAprobados.length;
     let totalInversionUSD = misAprobados.reduce((sum, p) => sum + (p.costo || 0), 0);
@@ -181,32 +205,134 @@ function renderPedidosPortalAliado() {
     if (elDashInversion) elDashInversion.innerText = `$${totalInversionUSD.toFixed(2)}`;
 
     if (todosMisPedidos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
         return;
     }
 
     todosMisPedidos.forEach(p => {
-        let badgeEstatus = '';
-        if (p.pendiente_aprobacion) {
-            badgeEstatus = `<span class="badge-status" style="background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.78rem;">🟡 Pendiente Aprobación</span>`;
-        } else if (p.completado) {
-            badgeEstatus = `<span class="badge-status" style="background-color: #d1fae5; color: #059669; border: 1px solid #a7f3d0; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.78rem;">🟢 Entregado Con Éxito</span>`;
-        } else {
-            badgeEstatus = `<span class="badge-status" style="background-color: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.78rem;">🔵 En Ruta / Motorizado Asignado</span>`;
-        }
+        const barraProgreso = obtenerBarraEstatus(p);
+        const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#0284c7; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa</a>` : '';
+        const pagoHtml = p.metodo_pago ? `<br><span class="text-sub">💳 ${p.metodo_pago}</span>` : '';
+        const pesoHtml = p.tamano_paquete ? `<br><span class="text-sub">📦 ${p.tamano_paquete}</span>` : '';
 
         tbody.innerHTML += `
             <tr>
-                <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
-                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
-                <td>${p.direccion}</td>
-                <td>${badgeEstatus}</td>
-                <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
+                <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span>${p.hora_programada ? `<br><small style="color:#d97706;">⏰ ${p.hora_programada}</small>` : ''}</td>
+                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span>${pagoHtml}</td>
+                <td>${p.direccion}${mapLinkHtml}</td>
+                <td style="min-width:130px;">${barraProgreso}</td>
+                <td class="text-italic">${p.motorizado || 'Por asignar'}${pesoHtml}</td>
                 <td class="text-orange" style="font-weight:bold;">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
+                <td>
+                    <button type="button" class="action-btn" onclick="duplicarPedidoAliado('${p.firestoreId}')" title="Duplicar Orden">🔄</button>
+                </td>
             </tr>
         `;
     });
 }
+
+// DUPLICAR PEDIDO PARA REORDENES RÁPIDAS
+window.duplicarPedidoAliado = function(fId) {
+    const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
+    if (!p) return;
+
+    if (document.getElementById('port-nombre')) document.getElementById('port-nombre').value = p.cliente || '';
+    if (document.getElementById('port-telefono')) document.getElementById('port-telefono').value = p.telefono || '';
+    if (document.getElementById('port-direccion')) document.getElementById('port-direccion').value = p.direccion || '';
+    if (document.getElementById('port-detalles')) document.getElementById('port-detalles').value = p.detalles || '';
+    if (document.getElementById('port-maps-link')) document.getElementById('port-maps-link').value = p.maps_link || '';
+    if (document.getElementById('port-metodo-pago')) document.getElementById('port-metodo-pago').value = p.metodo_pago || 'Efectivo USD';
+    if (document.getElementById('port-tamano-paquete')) document.getElementById('port-tamano-paquete').value = p.tamano_paquete || 'Mediano / Bolsa';
+
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Datos duplicados en el formulario de envío.',
+        showConfirmButton: false,
+        timer: 2000
+    });
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// EXPORTAR CONTROL CONTABLE A CSV / EXCEL
+window.exportarResumenAliadoExcel = function() {
+    const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
+    if (misAprobados.length === 0) {
+        Swal.fire("Sin Registros", "No tienes entregas registradas para exportar.", "info");
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,Fecha,Hora,Cliente,Telefono,Direccion,Metodo Pago,Motorizado,Monto USD,Estatus\n";
+
+    misAprobados.forEach(p => {
+        const estatus = p.completado ? "Entregado" : "En Ruta";
+        const row = `"${p.fecha}","${p.hora || ''}","${p.cliente}","${p.telefono}","${p.direccion.replace(/"/g, '""')}","${p.metodo_pago || 'N/A'}","${p.motorizado || 'N/A'}","${(p.costo || 0).toFixed(2)}","${estatus}"`;
+        csvContent += row + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Reporte_Entregas_${usuarioActual.aliadoComercial.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// CARGA Y REGISTRO DE COMPROBANTE DE PAGO
+window.registrarComprobantePagoAliado = function() {
+    const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
+    const totalAcumulado = misAprobados.reduce((sum, p) => sum + (p.costo || 0), 0);
+
+    Swal.fire({
+        title: 'Reportar Pago de Deliverys',
+        html: `
+            <p style="font-size:0.9rem; color:#475569; margin-bottom:10px;">Total Acumulado Actual: <b>$${totalAcumulado.toFixed(2)}</b></p>
+            <input id="swal-ref-pago" class="swal2-input" placeholder="Número de Referencia / N° Transacción">
+            <input id="swal-monto-pago" type="number" step="0.01" class="swal2-input" placeholder="Monto Transferido ($ USD)">
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Enviar Comprobante',
+        confirmButtonColor: '#ff6600',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const ref = document.getElementById('swal-ref-pago').value.trim();
+            const monto = document.getElementById('swal-monto-pago').value.trim();
+            if (!ref || !monto) {
+                Swal.showValidationMessage('Ingresa la referencia y el monto.');
+                return false;
+            }
+            return { ref, monto };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const { ref, monto } = result.value;
+            
+            db.collection('gastos').add({
+                detalle: `[COMPROBANTE ALIADO] ${usuarioActual.aliadoComercial} - Ref: ${ref}`,
+                monto: parseFloat(monto) || 0,
+                fecha: getVenezuelaDate(),
+                tipo: 'Abono Aliado'
+            }).then(() => {
+                const msgWhatsApp = encodeURIComponent(
+                    `*💰 COMPROBANTE DE PAGO ENVIADO*\n\n` +
+                    `*Aliado Comercial:* ${usuarioActual.aliadoComercial}\n` +
+                    `*Monto Reportado:* $${parseFloat(monto).toFixed(2)}\n` +
+                    `*N° de Referencia:* ${ref}\n` +
+                    `*Fecha:* ${getVenezuelaDate()}\n\n` +
+                    `Por favor, verificar y conciliar en la relación de cuentas central.`
+                );
+                
+                Swal.fire("Pago Registrado", "El comprobante fue indexado. Procede a notificar a SunDelivery.", "success")
+                .then(() => {
+                    window.open(`https://api.whatsapp.com/send?phone=584244529892&text=${msgWhatsApp}`, '_blank');
+                });
+            });
+        }
+    });
+};
 
 function arrancarAplicacion() {
     document.getElementById('login-view').classList.add('hidden');
@@ -571,12 +697,15 @@ function renderPedidosPendientesAliadosTable() {
     
     panelBox.style.display = "block";
     pedidosPendientesAliados.forEach(p => {
+        const extraInfo = p.metodo_pago ? `<br><small>💳 ${p.metodo_pago}</small>` : '';
+        const mapInfo = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="font-size:0.75rem; color:#0284c7;">📍 Mapa GPS</a>` : '';
+
         tbody.innerHTML += `
             <tr>
                 <td class="text-bold" style="color: #ff6600;">${p.aliado}</td>
-                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
-                <td>${p.direccion}</td>
-                <td>${p.detalles}</td>
+                <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span>${extraInfo}</td>
+                <td>${p.direccion}${mapInfo}</td>
+                <td>${p.detalles} ${p.tamano_paquete ? `<br><small>📦 ${p.tamano_paquete}</small>` : ''}</td>
                 <td>
                     <button type="button" class="btn-submit" style="padding:6px 10px; font-size:0.78rem; width:auto; background:#ff6600;" onclick="cargarPedidoPendienteAlFormulario('${p.firestoreId}')">
                         <i class="fa-solid fa-bolt"></i> Procesar Orden
@@ -595,7 +724,7 @@ window.cargarPedidoPendienteAlFormulario = function(fId) {
     document.getElementById('ped-telefono').value = p.telefono;
     document.getElementById('ped-direccion').value = p.direccion;
     document.getElementById('ped-aliado').value = p.aliado;
-    document.getElementById('ped-detalles').value = p.detalles;
+    document.getElementById('ped-detalles').value = `${p.detalles || ''} ${p.metodo_pago ? '[Pago: ' + p.metodo_pago + ']' : ''} ${p.tamano_paquete ? '[Paquete: ' + p.tamano_paquete + ']' : ''}`;
     
     const inputFecha = document.getElementById('ped-fecha');
     if (inputFecha) {
@@ -621,6 +750,7 @@ window.cargarPedidoPendienteAlFormulario = function(fId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// PROCESAR DESPACHO DESDE EL PORTAL DE ALIADO (CON NUEVOS CAMPOS)
 window.processPortalPedido = function(e) {
     e.preventDefault();
     const clientName = document.getElementById('port-nombre').value.trim();
@@ -628,6 +758,11 @@ window.processPortalPedido = function(e) {
     const clientDir = document.getElementById('port-direccion').value.trim();
     const detailText = document.getElementById('port-detalles').value.trim();
     
+    const horaProgramadaVal = document.getElementById('port-hora-programada') ? document.getElementById('port-hora-programada').value : 'Inmediato';
+    const metodoPagoVal = document.getElementById('port-metodo-pago') ? document.getElementById('port-metodo-pago').value : 'Efectivo USD';
+    const mapsLinkVal = document.getElementById('port-maps-link') ? document.getElementById('port-maps-link').value.trim() : '';
+    const tamanoPaqueteVal = document.getElementById('port-tamano-paquete') ? document.getElementById('port-tamano-paquete').value : 'Mediano / Bolsa';
+
     const inputFechaPort = document.getElementById('port-fecha');
     const selectedFechaPort = inputFechaPort && inputFechaPort.value ? inputFechaPort.value : getVenezuelaDate();
     const fechaFormatSalida = formatISOToVE(selectedFechaPort);
@@ -638,6 +773,10 @@ window.processPortalPedido = function(e) {
         id: numericId,
         fecha: fechaFormatSalida,
         hora: getVenezuelaTime(),
+        hora_programada: horaProgramadaVal,
+        metodo_pago: metodoPagoVal,
+        maps_link: mapsLinkVal,
+        tamano_paquete: tamanoPaqueteVal,
         cliente: clientName,
         telefono: clientPhone,
         direccion: clientDir,
@@ -657,18 +796,22 @@ window.processPortalPedido = function(e) {
         
         const msgCentralAdmin = encodeURIComponent(
             `*📌 NOTIFICACIÓN DE PORTAL DE ALIADOS*\n\n` +
-            `El aliado comercial *${pedidoPreRegistro.aliado}* ha generado una nueva solicitud de despacho en la plataforma.\n\n` +
+            `El aliado comercial *${pedidoPreRegistro.aliado}* ha generado una nueva solicitud de despacho.\n\n` +
             `📅 *Fecha Solicitada:* ${pedidoPreRegistro.fecha}\n` +
+            `⏰ *Tipo Entrega:* ${pedidoPreRegistro.hora_programada}\n` +
             `👤 *Cliente:* ${pedidoPreRegistro.cliente}\n` +
             `📞 *Teléfono:* +58 ${pedidoPreRegistro.telefono}\n` +
-            `📍 *Dirección de Entrega:* ${pedidoPreRegistro.direccion}\n` +
-            `📦 *Detalle del Paquete:* ${pedidoPreRegistro.detalles}\n\n` +
-            `⚠️ *Acción:* Por favor, ingrese al panel de administración central para asignar la unidad de motorizado y fijar la tarifa de delivery correspondiente.`
+            `📍 *Dirección:* ${pedidoPreRegistro.direccion}\n` +
+            `${pedidoPreRegistro.maps_link ? '🗺️ *Ubicación GPS:* ' + pedidoPreRegistro.maps_link + '\n' : ''}` +
+            `💳 *Método de Pago Cliente:* ${pedidoPreRegistro.metodo_pago}\n` +
+            `📦 *Tamaño/Peso:* ${pedidoPreRegistro.tamano_paquete}\n` +
+            `📝 *Detalle:* ${pedidoPreRegistro.detalles}\n\n` +
+            `⚠️ *Acción:* Ingrese al panel central para asignar unidad de motorizado y tarifa.`
         );
 
         Swal.fire({
             title: "¡Solicitud Enviada!",
-            text: "Su pedido ha sido indexado. Presione el botón para enviar la notificación a despacho central vía WhatsApp.",
+            text: "Su pedido ha sido indexado. Presione el botón para notificar a despacho central vía WhatsApp.",
             icon: "success",
             confirmButtonText: "Notificar por WhatsApp",
             confirmButtonColor: "#25d366"
@@ -713,8 +856,8 @@ function obtenerHistorialClientesUnificado() {
 }
 
 window.triggerAutocomplete = function(type) {
-    const valInputTel = document.getElementById("ped-telefono").value.trim().toLowerCase();
-    const valInputNom = document.getElementById("ped-nombre").value.trim().toLowerCase();
+    const valInputTel = document.getElementById("ped-telefono") ? document.getElementById("ped-telefono").value.trim().toLowerCase() : '';
+    const valInputNom = document.getElementById("ped-nombre") ? document.getElementById("ped-nombre").value.trim().toLowerCase() : '';
     
     const boxTel = document.getElementById("sug-telefono");
     const boxNom = document.getElementById("sug-nombre");
@@ -755,9 +898,9 @@ window.triggerAutocomplete = function(type) {
 };
 
 function fillFormFromSuggestion(cliente) {
-    document.getElementById("ped-telefono").value = cliente.telefono;
-    document.getElementById("ped-nombre").value = cliente.nombre;
-    document.getElementById("ped-direccion").value = cliente.direccion;
+    if (document.getElementById("ped-telefono")) document.getElementById("ped-telefono").value = cliente.telefono;
+    if (document.getElementById("ped-nombre")) document.getElementById("ped-nombre").value = cliente.nombre;
+    if (document.getElementById("ped-direccion")) document.getElementById("ped-direccion").value = cliente.direccion;
     
     const boxTel = document.getElementById("sug-telefono");
     const boxNom = document.getElementById("sug-nombre");
@@ -1389,5 +1532,4 @@ window.triggerDownloadJPG = function() {
     });
 };
 
-// INICIALIZACIÓN GLOBAL DE DATOS
 syncCloudData();

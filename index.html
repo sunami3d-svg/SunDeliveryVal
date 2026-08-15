@@ -674,7 +674,7 @@
 
     <div id="contenedor-alertas-flotantes"></div>
 
-    <!-- PANTALLA DE LOGIN CON EL NUEVO LOGO DESTACADO -->
+    <!-- PANTALLA DE LOGIN -->
     <div id="login-view">
         <div class="login-card">
             <div class="brand-logo-login-container">
@@ -710,7 +710,7 @@
                 Para garantizar un servicio óptimo, recuerde verificar el costo y la zona de entrega con el equipo de <strong>SUNDELIVERY</strong> antes de registrar el pedido.
             </div>
 
-            <!-- TARJETA VISUAL: COTIZADOR DE TARIFAS INTEGRADO PARA EL ALIADO -->
+            <!-- COTIZADOR DE TARIFAS INTEGRADO -->
             <div class="cotizador-box">
                 <div class="panel-title" style="margin-bottom:12px; border-left-color:#cd7f32;">
                     <i class="fa-solid fa-calculator" style="color:#cd7f32"></i> Cotizador Rápido de Delivery
@@ -720,36 +720,22 @@
                         <label>Zona / Sector de Valencia</label>
                         <select id="cotizador-zona" onchange="calcularCotizacionRapida()">
                             <option value="" disabled selected>Seleccione una zona...</option>
-                            
-                            <!-- Tarifa $2.00 -->
                             <option value="2.00">Prebo, Prebo 2, Prebo 3</option>
                             <option value="2.00">Valle de Camoruco / Sabana Larga / Los Mangos</option>
                             <option value="2.00">Agua Blanca / Nísperos / Campo Alegre</option>
                             <option value="2.00">El Bosque / Parque Mirador / La Manguita</option>
                             <option value="2.00">El Parral / Andrés Eloy Blanco</option>
-
-                            <!-- Tarifa $2.50 -->
                             <option value="2.50">La Viña / La Alegría / Guaparo</option>
                             <option value="2.50">Av. Bolívar (Norte a Sur) / Los Colorados</option>
-
-                            <!-- Tarifa $3.00 -->
                             <option value="3.00">Portachuelo / Altos de Guataparo / Lomas de Guataparo</option>
                             <option value="3.00">Trigal (Norte, Sur, Centro) / Mañongo</option>
                             <option value="3.00">Centro / Av. Lara / Palacio de Justicia</option>
-
-                            <!-- Tarifa $4.00 -->
                             <option value="4.00">Terrazas del Country / Vía Club Guataparo / Vía El Dique</option>
                             <option value="4.00">Tazajal / El Rincón</option>
                             <option value="4.00">Periférico / Puente Boquete / Aranzazu / CHET</option>
-
-                            <!-- Tarifa $5.00 -->
                             <option value="5.00">El Solar / Hato Royal</option>
                             <option value="5.00">San Diego (Hasta La Cumaca/Zona Ind.) / La Isabelica</option>
-
-                            <!-- Tarifa $6.00 -->
                             <option value="6.00">San Diego (Después de Las Morochas)</option>
-
-                            <!-- Tarifa $7.00 -->
                             <option value="7.00">La Variante / Alrededores lejanos</option>
                         </select>
                     </div>
@@ -770,23 +756,76 @@
                 </div>
             </div>
 
+            <!-- FORMULARIO PORTAL ALIADO CON LAS 4 NUEVAS OPCIONES -->
             <form id="form-portal-aliado" onsubmit="processPortalPedido(event)" autocomplete="off">
-                <div class="form-group">
-                    <label>Nombre del Cliente</label>
-                    <input type="text" id="port-nombre" placeholder="Nombre del destinatario" required>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>Nombre del Cliente</label>
+                        <input type="text" id="port-nombre" placeholder="Nombre del destinatario" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono Cliente</label>
+                        <input type="text" id="port-telefono" placeholder="Ej: 04121112233" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Teléfono Cliente</label>
-                    <input type="text" id="port-telefono" placeholder="Ej: 04121112233" required>
-                </div>
+
                 <div class="form-group">
                     <label>Dirección de Entrega</label>
                     <input type="text" id="port-direccion" placeholder="Urb, Calle, Edificio/Casa" required>
                 </div>
+
+                <!-- OPCIÓN 1: Link de Google Maps / GPS -->
+                <div class="form-group">
+                    <label><i class="fa-solid fa-map-location-dot" style="color:#cd7f32"></i> Ubicación Google Maps / GPS (Opcional)</label>
+                    <input type="url" id="port-maps" placeholder="https://maps.google.com/?q=...">
+                </div>
+
+                <div class="form-row-2">
+                    <!-- OPCIÓN 2: Horario de Entrega / Programación -->
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-clock" style="color:#cd7f32"></i> Horario de Entrega</label>
+                        <select id="port-horario" onchange="toggleHoraEspecificaAliado()" required>
+                            <option value="Inmediato">Lo antes posible (Inmediato)</option>
+                            <option value="Programado">Programado (Especificar Hora)</option>
+                        </select>
+                    </div>
+
+                    <!-- Hora Específica (Se activa si elije Programado) -->
+                    <div class="form-group" id="group-hora-especifica" style="display: none;">
+                        <label><i class="fa-solid fa-business-time" style="color:#cd7f32"></i> Hora Programada</label>
+                        <input type="time" id="port-hora-especifica">
+                    </div>
+
+                    <!-- OPCIÓN 3: Método de Pago del Delivery -->
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-wallet" style="color:#cd7f32"></i> Método de Pago Delivery</label>
+                        <select id="port-metodo-pago" required>
+                            <option value="Efectivo USD">Efectivo USD ($)</option>
+                            <option value="Pago Móvil">Pago Móvil (Bs)</option>
+                            <option value="Zelle">Zelle</option>
+                            <option value="Cobro en Destino">Cobro en Destino (COD)</option>
+                            <option value="Cargado a Cuenta Aliado">Cargado a Cuenta Aliado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row-2">
+                    <!-- OPCIÓN 4: Tamaño / Peso del Paquete -->
+                    <div class="form-group">
+                        <label><i class="fa-solid fa-box-archive" style="color:#cd7f32"></i> Tamaño / Peso del Paquete</label>
+                        <select id="port-tamano" required>
+                            <option value="Pequeño / Sobre">Pequeño (Documentos / Ligero)</option>
+                            <option value="Mediano">Mediano (Comida / Estándar)</option>
+                            <option value="Grande / Carga">Grande / Carga Pesada</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Detalles del Paquete / Pedido</label>
-                    <textarea id="port-detalles" rows="3" placeholder="Especificaciones, productos, etc." required></textarea>
+                    <textarea id="port-detalles" rows="3" placeholder="Especificaciones, productos, notas especiales..." required></textarea>
                 </div>
+
                 <button type="submit" class="btn-submit"><i class="fa-solid fa-paper-plane"></i> Enviar Pedido a Central</button>
                 <button type="button" class="btn-submit btn-dark-blue" style="margin-top:10px;" onclick="logoutPortal()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
             </form>
@@ -799,6 +838,7 @@
                             <th>Fecha/Hora</th>
                             <th>Cliente</th>
                             <th>Dirección</th>
+                            <th>Horario / Pago</th>
                             <th>Estatus</th>
                             <th>Repartidor</th>
                             <th>Costo Delivery</th>
@@ -896,8 +936,8 @@
                             <tr>
                                 <th>Aliado</th>
                                 <th>Cliente</th>
-                                <th>Dirección</th>
-                                <th>Detalles</th>
+                                <th>Dirección / GPS</th>
+                                <th>Detalles / Pago</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -999,7 +1039,7 @@
                 </a>
             </div>
 
-            <!-- PLANTILLA DE FACTURA OCULTA CON EL NUEVO LOGO COMO MARCA DE AGUA -->
+            <!-- PLANTILLA DE FACTURA OCULTA CON MARCA DE AGUA -->
             <div id="recibo-diseno-factura">
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 1;">
                     <img src="35811.png" style="width: 85%; height: auto; object-fit: contain; opacity: 0.12; filter: contrast(110%);">
@@ -1157,7 +1197,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE MANEJO DE COTIZACIÓN RÁPIDA -->
+    <!-- SCRIPT AUXILIAR -->
     <script>
         function calcularCotizacionRapida() {
             const costoZona = parseFloat(document.getElementById('cotizador-zona').value) || 0;
@@ -1166,6 +1206,12 @@
             
             document.getElementById('cot-val-usd').innerText = `$${costoZona.toFixed(2)}`;
             document.getElementById('cot-val-bs').innerText = `${totalBs.toFixed(2)} Bs`;
+        }
+
+        function toggleHoraEspecificaAliado() {
+            const horarioSelect = document.getElementById('port-horario').value;
+            const groupHora = document.getElementById('group-hora-especifica');
+            groupHora.style.display = (horarioSelect === 'Programado') ? 'block' : 'none';
         }
     </script>
 
