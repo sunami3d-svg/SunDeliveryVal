@@ -630,6 +630,43 @@ window.processPortalPedido = function(e) {
     });
 };
 
+// Función auxiliar para obtener un mapa unificado entre Cartera de Clientes e Historial de Pedidos
+function obtenerHistorialClientesUnificado() {
+    const mapaClientes = new Map();
+
+    // 1. Agregar clientes registrados formalmente en la cartera
+    if (Array.isArray(directorioClientes)) {
+        directorioClientes.forEach(c => {
+            const tlf = c.telefono ? c.telefono.trim() : '';
+            if (tlf) {
+                mapaClientes.set(tlf, {
+                    nombre: c.nombre || '',
+                    telefono: tlf,
+                    direccion: c.direccion || '',
+                    origen: 'Cartera'
+                });
+            }
+        });
+    }
+
+    // 2. Recorrer el historial de pedidos anteriores (prioriza la dirección/nombre del pedido más reciente)
+    if (Array.isArray(pedidos)) {
+        pedidos.forEach(p => {
+            const tlf = p.telefono ? p.telefono.trim() : '';
+            if (tlf && !mapaClientes.has(tlf)) {
+                mapaClientes.set(tlf, {
+                    nombre: p.cliente || p.nombre || '',
+                    telefono: tlf,
+                    direccion: p.direccion || '',
+                    origen: 'Historial'
+                });
+            }
+        });
+    }
+
+    return Array.from(mapaClientes.values());
+}
+
 window.triggerAutocomplete = function(type) {
     const valInputTel = document.getElementById("ped-telefono").value.trim().toLowerCase();
     const valInputNom = document.getElementById("ped-nombre").value.trim().toLowerCase();
@@ -640,27 +677,31 @@ window.triggerAutocomplete = function(type) {
     if (boxTel) { boxTel.innerHTML = ""; boxTel.style.display = "none"; }
     if (boxNom) { boxNom.innerHTML = ""; boxNom.style.display = "none"; }
 
+    const universoClientes = obtenerHistorialClientesUnificado();
+
     if (type === 'telefono' && valInputTel.length >= 2) {
-        const coincidencias = directorioClientes.filter(c => c.telefono.toLowerCase().includes(valInputTel));
+        const coincidencias = universoClientes.filter(c => c.telefono.toLowerCase().includes(valInputTel));
         if (coincidencias.length > 0 && boxTel) {
             boxTel.style.display = "block";
-            coincidencias.forEach(c => {
+            coincidencias.slice(0, 5).forEach(c => {
+                const tagOrigen = c.origen === 'Cartera' ? '⭐ Cliente' : '📦 Historial';
                 const div = document.createElement("div");
                 div.className = "suggestion-item";
-                div.innerHTML = `<span>📱 <b>${c.telefono}</b></span><span class="sug-meta">${c.nombre}</span>`;
+                div.innerHTML = `<span>📱 <b>${c.telefono}</b> - ${c.nombre}</span><span class="sug-meta">${tagOrigen}</span>`;
                 div.onclick = () => fillFormFromSuggestion(c);
                 boxTel.appendChild(div);
             });
         }
     } 
     else if (type === 'nombre' && valInputNom.length >= 2) {
-        const coincidencias = directorioClientes.filter(c => c.nombre.toLowerCase().includes(valInputNom));
+        const coincidencias = universoClientes.filter(c => c.nombre.toLowerCase().includes(valInputNom));
         if (coincidencias.length > 0 && boxNom) {
             boxNom.style.display = "block";
-            coincidencias.forEach(c => {
+            coincidencias.slice(0, 5).forEach(c => {
+                const tagOrigen = c.origen === 'Cartera' ? '⭐ Cliente' : '📦 Historial';
                 const div = document.createElement("div");
                 div.className = "suggestion-item";
-                div.innerHTML = `<span>👤 <b>${c.nombre}</b></span><span class="sug-meta">${c.telefono}</span>`;
+                div.innerHTML = `<span>👤 <b>${c.nombre}</b> - ${c.telefono}</span><span class="sug-meta">${tagOrigen}</span>`;
                 div.onclick = () => fillFormFromSuggestion(c);
                 boxNom.appendChild(div);
             });
@@ -678,7 +719,7 @@ function fillFormFromSuggestion(cliente) {
     if (boxTel) boxTel.style.display = "none";
     if (boxNom) boxNom.style.display = "none";
 
-    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Cliente cargado con éxito', showConfirmButton: false, timer: 1500 });
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Datos cargados automáticamente', showConfirmButton: false, timer: 1500 });
 }
 
 window.saveDirectorioCliente = function(e) {
