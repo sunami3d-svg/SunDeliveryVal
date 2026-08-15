@@ -26,6 +26,18 @@ function getVenezuelaTime() {
     return new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }).format(now);
 }
 
+// Tarifario Estándar de Zonas (Valencia y zonas aledañas)
+const TARIFARIO_ZONAS = {
+    "El Parral / Prebo / Kratos": 2.50,
+    "El Bosque / La Viña / Trigaleña": 3.00,
+    "Trigal Norte / Trigal Sur": 3.00,
+    "Naguanagua Centro / Mañongo": 3.50,
+    "La Isabelica / Zona Industrial": 4.00,
+    "San Diego (Hasta Fin de Siglo)": 4.50,
+    "Los Guayos / Guacara": 6.00,
+    "Tocuyito / Campo Carabobo": 7.00
+};
+
 let aliados = [];
 let motorizados = [];
 let pedidos = [];
@@ -114,6 +126,7 @@ window.arrancarPortalAliado = function() {
     const elFechaPort = document.getElementById('port-fecha');
     if (elFechaPort) elFechaPort.value = getVenezuelaDate();
 
+    initCotizadorAliado();
     renderPedidosPortalAliado();
 };
 
@@ -122,6 +135,26 @@ window.logoutPortal = function() {
     document.getElementById('login-view').classList.remove('hidden');
     document.getElementById('form-portal-aliado').reset();
     usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
+};
+
+// Cotizador de Tarifas en el Portal Aliado
+function initCotizadorAliado() {
+    const selectZona = document.getElementById('port-cotizador-zona');
+    if (!selectZona) return;
+    
+    selectZona.innerHTML = '<option value="">-- Seleccionar Zona de Destino --</option>';
+    for (const [zona, tarifa] of Object.entries(TARIFARIO_ZONAS)) {
+        selectZona.innerHTML += `<option value="${tarifa}">${zona} ($${tarifa.toFixed(2)})</option>`;
+    }
+}
+
+window.calcularTarifaCotizador = function() {
+    const selectZona = document.getElementById('port-cotizador-zona');
+    const displayTarifa = document.getElementById('port-cotizador-monto');
+    if (!selectZona || !displayTarifa) return;
+
+    const tarifa = parseFloat(selectZona.value) || 0;
+    displayTarifa.innerText = tarifa > 0 ? `$${tarifa.toFixed(2)}` : '$0.00';
 };
 
 function renderPedidosPortalAliado() {
@@ -134,6 +167,19 @@ function renderPedidosPortalAliado() {
     
     const todosMisPedidos = [...misPendientes, ...misAprobados].sort((a, b) => b.id - a.id);
 
+    // Actualizar Tarjetas del Dashboard del Aliado
+    let cantPendientes = misPendientes.length;
+    let cantAprobados = misAprobados.length;
+    let totalInversionUSD = misAprobados.reduce((sum, p) => sum + (p.costo || 0), 0);
+
+    const elDashPend = document.getElementById('aliado-dash-pendientes');
+    const elDashAct = document.getElementById('aliado-dash-activos');
+    const elDashInversion = document.getElementById('aliado-dash-inversion');
+
+    if (elDashPend) elDashPend.innerText = cantPendientes;
+    if (elDashAct) elDashAct.innerText = cantAprobados;
+    if (elDashInversion) elDashInversion.innerText = `$${totalInversionUSD.toFixed(2)}`;
+
     if (todosMisPedidos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
         return;
@@ -142,9 +188,11 @@ function renderPedidosPortalAliado() {
     todosMisPedidos.forEach(p => {
         let badgeEstatus = '';
         if (p.pendiente_aprobacion) {
-            badgeEstatus = `<span class="badge-blue" style="background-color: #ffedd5; color: #ea580c; border: 1px solid #fed7aa;">Pendiente de Aprobación</span>`;
+            badgeEstatus = `<span class="badge-status" style="background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.78rem;">🟡 Pendiente Aprobación</span>`;
+        } else if (p.completado) {
+            badgeEstatus = `<span class="badge-status" style="background-color: #d1fae5; color: #059669; border: 1px solid #a7f3d0; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.78rem;">🟢 Entregado Con Éxito</span>`;
         } else {
-            badgeEstatus = `<span class="badge-blue" style="background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0;">Ruta Asignada Activa</span>`;
+            badgeEstatus = `<span class="badge-status" style="background-color: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.78rem;">🔵 En Ruta / Motorizado Asignado</span>`;
         }
 
         tbody.innerHTML += `
@@ -154,7 +202,7 @@ function renderPedidosPortalAliado() {
                 <td>${p.direccion}</td>
                 <td>${badgeEstatus}</td>
                 <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
-                <td class="text-orange">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
+                <td class="text-orange" style="font-weight:bold;">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
             </tr>
         `;
     });
@@ -630,11 +678,9 @@ window.processPortalPedido = function(e) {
     });
 };
 
-// Función auxiliar para obtener un mapa unificado entre Cartera de Clientes e Historial de Pedidos
 function obtenerHistorialClientesUnificado() {
     const mapaClientes = new Map();
 
-    // 1. Agregar clientes registrados formalmente en la cartera
     if (Array.isArray(directorioClientes)) {
         directorioClientes.forEach(c => {
             const tlf = c.telefono ? c.telefono.trim() : '';
@@ -649,7 +695,6 @@ function obtenerHistorialClientesUnificado() {
         });
     }
 
-    // 2. Recorrer el historial de pedidos anteriores (prioriza la dirección/nombre del pedido más reciente)
     if (Array.isArray(pedidos)) {
         pedidos.forEach(p => {
             const tlf = p.telefono ? p.telefono.trim() : '';
@@ -903,6 +948,7 @@ function renderPedidos() {
         let btnAcciones = usuarioActual.rol === 'admin' ? `
             <td>
                 <div class="action-cell">
+                    <button type="button" class="action-btn" onclick="togglePedidoCompletado(event, '${p.firestoreId}')" title="${p.completado ? 'Marcar En Proceso' : 'Marcar Completado'}">${p.completado ? '✅' : '⏳'}</button>
                     <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
                     <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
                 </div>
@@ -923,6 +969,24 @@ function renderPedidos() {
         `;
     });
 }
+
+window.togglePedidoCompletado = function(event, fId) {
+    if (event) event.stopPropagation();
+    const p = pedidos.find(item => item.firestoreId === fId);
+    if (!p) return;
+
+    const nuevoEstado = !p.completado;
+    db.collection('pedidos').doc(fId).update({ completado: nuevoEstado }).then(() => {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: nuevoEstado ? 'Pedido marcado como Entregado' : 'Pedido retornado a En Ruta',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    });
+};
 
 window.processNewPedido = function(e) {
     e.preventDefault();
@@ -972,7 +1036,8 @@ window.processNewPedido = function(e) {
             fecha: fechaFormatSalida,
             hora: getVenezuelaTime(),
             cliente: clientName, telefono: clientPhone, direccion: clientDir,
-            aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
+            aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText,
+            completado: false
         };
 
         if (pendingReferenceId) {

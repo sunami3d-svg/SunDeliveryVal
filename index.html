@@ -94,7 +94,6 @@
             align-items: center;
         }
         
-        /* HEROLOGO CENTRADO Y DE MITAD DE PORTADA */
         .brand-logo-login-container {
             width: 100%;
             display: flex;
@@ -269,6 +268,29 @@
             align-items: center;
             gap: 8px;
         }
+
+        /* COTIZADOR COMPONENT */
+        .cotizador-box {
+            background: linear-gradient(145deg, #181818 0%, #242424 100%);
+            border: 1px solid #cd7f32;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 24px;
+            box-shadow: 0 6px 16px rgba(205, 127, 50, 0.15);
+        }
+        .cotizador-res-box {
+            background: #121212;
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 1px solid #333;
+        }
+        .cotizador-res-item { text-align: center; }
+        .cotizador-res-item .lbl { font-size: 0.7rem; color: #a0a0a0; text-transform: uppercase; }
+        .cotizador-res-item .val { font-size: 1.2rem; font-weight: 800; color: #cd7f32; }
 
         /* FORMULARIOS */
         .form-group {
@@ -746,6 +768,43 @@
 
         <!-- PESTAÑA: AGREGAR PEDIDO -->
         <div id="view-agregar" class="view-section active">
+            
+            <!-- TARJETA VISUAL: COTIZADOR DE TARIFAS Y RUTA -->
+            <div class="cotizador-box">
+                <div class="panel-title" style="margin-bottom:12px; border-left-color:#cd7f32;">
+                    <i class="fa-solid fa-calculator" style="color:#cd7f32"></i> Cotizador Rápido de Delivery
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Zona / Sector de Valencia</label>
+                        <select id="cotizador-zona" onchange="calcularCotizacionRapida()">
+                            <option value="2.5">Norte (El Trigre, Prebo, Parral) - $2.50</option>
+                            <option value="3.0">Centro / Av. Cedeño - $3.00</option>
+                            <option value="4.0">Sur / Plaza Toros - $4.00</option>
+                            <option value="5.0">Naguanagua / Mañongo - $5.00</option>
+                            <option value="6.0">San Diego - $6.00</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Tasa BCV / Ref ($)</label>
+                        <input type="number" id="cotizador-tasa" value="45.50" step="0.01" oninput="calcularCotizacionRapida()">
+                    </div>
+                </div>
+                <div class="cotizador-res-box">
+                    <div class="cotizador-res-item">
+                        <div class="lbl">Monto USD</div>
+                        <div class="val" id="cot-val-usd">$2.50</div>
+                    </div>
+                    <div class="cotizador-res-item">
+                        <div class="lbl">Monto en BS</div>
+                        <div class="val" id="cot-val-bs" style="color:#10b981;">113.75 Bs</div>
+                    </div>
+                    <button type="button" class="btn-submit" style="width:auto; padding:8px 14px; font-size:0.8rem;" onclick="aplicarCotizacionAlPedido()">
+                        <i class="fa-solid fa-check"></i> Aplicar al Pedido
+                    </button>
+                </div>
+            </div>
+
             <div class="card-panel v-admin" style="border-left: 5px solid #10b981;">
                 <div class="panel-title" style="border:none; padding:0; margin-bottom:12px;"><i class="fa-solid fa-sliders" style="color:#10b981"></i> Ajustes Operativos</div>
                 <div class="form-group" style="margin:0;">
@@ -1073,6 +1132,32 @@
             </div>
         </div>
     </div>
+
+    <!-- SCRIPT DE MANEJO DE COTIZACIÓN RÁPIDA -->
+    <script>
+        function calcularCotizacionRapida() {
+            const costoZona = parseFloat(document.getElementById('cotizador-zona').value) || 0;
+            const tasa = parseFloat(document.getElementById('cotizador-tasa').value) || 0;
+            const totalBs = costoZona * tasa;
+            
+            document.getElementById('cot-val-usd').innerText = `$${costoZona.toFixed(2)}`;
+            document.getElementById('cot-val-bs').innerText = `${totalBs.toFixed(2)} Bs`;
+        }
+
+        function aplicarCotizacionAlPedido() {
+            const costoZona = document.getElementById('cotizador-zona').value;
+            document.getElementById('ped-costo').value = costoZona;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Cotización Aplicada!',
+                    text: `Se asignó $${costoZona} al campo Costo Delivery.`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+    </script>
 
     <!-- CÓDIGO JS PRINCIPAL -->
     <script src="./firebase-config.js"></script>
