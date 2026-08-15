@@ -710,6 +710,66 @@
                 Para garantizar un servicio óptimo, recuerde verificar el costo y la zona de entrega con el equipo de <strong>SUNDELIVERY</strong> antes de registrar el pedido.
             </div>
 
+            <!-- TARJETA VISUAL: COTIZADOR DE TARIFAS INTEGRADO PARA EL ALIADO -->
+            <div class="cotizador-box">
+                <div class="panel-title" style="margin-bottom:12px; border-left-color:#cd7f32;">
+                    <i class="fa-solid fa-calculator" style="color:#cd7f32"></i> Cotizador Rápido de Delivery
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Zona / Sector de Valencia</label>
+                        <select id="cotizador-zona" onchange="calcularCotizacionRapida()">
+                            <option value="" disabled selected>Seleccione una zona...</option>
+                            
+                            <!-- Tarifa $2.00 -->
+                            <option value="2.00">Prebo, Prebo 2, Prebo 3</option>
+                            <option value="2.00">Valle de Camoruco / Sabana Larga / Los Mangos</option>
+                            <option value="2.00">Agua Blanca / Nísperos / Campo Alegre</option>
+                            <option value="2.00">El Bosque / Parque Mirador / La Manguita</option>
+                            <option value="2.00">El Parral / Andrés Eloy Blanco</option>
+
+                            <!-- Tarifa $2.50 -->
+                            <option value="2.50">La Viña / La Alegría / Guaparo</option>
+                            <option value="2.50">Av. Bolívar (Norte a Sur) / Los Colorados</option>
+
+                            <!-- Tarifa $3.00 -->
+                            <option value="3.00">Portachuelo / Altos de Guataparo / Lomas de Guataparo</option>
+                            <option value="3.00">Trigal (Norte, Sur, Centro) / Mañongo</option>
+                            <option value="3.00">Centro / Av. Lara / Palacio de Justicia</option>
+
+                            <!-- Tarifa $4.00 -->
+                            <option value="4.00">Terrazas del Country / Vía Club Guataparo / Vía El Dique</option>
+                            <option value="4.00">Tazajal / El Rincón</option>
+                            <option value="4.00">Periférico / Puente Boquete / Aranzazu / CHET</option>
+
+                            <!-- Tarifa $5.00 -->
+                            <option value="5.00">El Solar / Hato Royal</option>
+                            <option value="5.00">San Diego (Hasta La Cumaca/Zona Ind.) / La Isabelica</option>
+
+                            <!-- Tarifa $6.00 -->
+                            <option value="6.00">San Diego (Después de Las Morochas)</option>
+
+                            <!-- Tarifa $7.00 -->
+                            <option value="7.00">La Variante / Alrededores lejanos</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Tasa BCV / Ref ($)</label>
+                        <input type="number" id="cotizador-tasa" value="45.50" step="0.01" oninput="calcularCotizacionRapida()">
+                    </div>
+                </div>
+                <div class="cotizador-res-box">
+                    <div class="cotizador-res-item">
+                        <div class="lbl">Monto USD</div>
+                        <div class="val" id="cot-val-usd">$0.00</div>
+                    </div>
+                    <div class="cotizador-res-item">
+                        <div class="lbl">Monto en BS</div>
+                        <div class="val" id="cot-val-bs" style="color:#10b981;">0.00 Bs</div>
+                    </div>
+                </div>
+            </div>
+
             <form id="form-portal-aliado" onsubmit="processPortalPedido(event)" autocomplete="off">
                 <div class="form-group">
                     <label>Nombre del Cliente</label>
@@ -768,42 +828,6 @@
 
         <!-- PESTAÑA: AGREGAR PEDIDO -->
         <div id="view-agregar" class="view-section active">
-            
-            <!-- TARJETA VISUAL: COTIZADOR DE TARIFAS Y RUTA -->
-            <div class="cotizador-box">
-                <div class="panel-title" style="margin-bottom:12px; border-left-color:#cd7f32;">
-                    <i class="fa-solid fa-calculator" style="color:#cd7f32"></i> Cotizador Rápido de Delivery
-                </div>
-                <div class="form-row-2">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Zona / Sector de Valencia</label>
-                        <select id="cotizador-zona" onchange="calcularCotizacionRapida()">
-                            <option value="2.5">Norte (El Trigre, Prebo, Parral) - $2.50</option>
-                            <option value="3.0">Centro / Av. Cedeño - $3.00</option>
-                            <option value="4.0">Sur / Plaza Toros - $4.00</option>
-                            <option value="5.0">Naguanagua / Mañongo - $5.00</option>
-                            <option value="6.0">San Diego - $6.00</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Tasa BCV / Ref ($)</label>
-                        <input type="number" id="cotizador-tasa" value="45.50" step="0.01" oninput="calcularCotizacionRapida()">
-                    </div>
-                </div>
-                <div class="cotizador-res-box">
-                    <div class="cotizador-res-item">
-                        <div class="lbl">Monto USD</div>
-                        <div class="val" id="cot-val-usd">$2.50</div>
-                    </div>
-                    <div class="cotizador-res-item">
-                        <div class="lbl">Monto en BS</div>
-                        <div class="val" id="cot-val-bs" style="color:#10b981;">113.75 Bs</div>
-                    </div>
-                    <button type="button" class="btn-submit" style="width:auto; padding:8px 14px; font-size:0.8rem;" onclick="aplicarCotizacionAlPedido()">
-                        <i class="fa-solid fa-check"></i> Aplicar al Pedido
-                    </button>
-                </div>
-            </div>
 
             <div class="card-panel v-admin" style="border-left: 5px solid #10b981;">
                 <div class="panel-title" style="border:none; padding:0; margin-bottom:12px;"><i class="fa-solid fa-sliders" style="color:#10b981"></i> Ajustes Operativos</div>
@@ -1142,20 +1166,6 @@
             
             document.getElementById('cot-val-usd').innerText = `$${costoZona.toFixed(2)}`;
             document.getElementById('cot-val-bs').innerText = `${totalBs.toFixed(2)} Bs`;
-        }
-
-        function aplicarCotizacionAlPedido() {
-            const costoZona = document.getElementById('cotizador-zona').value;
-            document.getElementById('ped-costo').value = costoZona;
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Cotización Aplicada!',
-                    text: `Se asignó $${costoZona} al campo Costo Delivery.`,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            }
         }
     </script>
 
