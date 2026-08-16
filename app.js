@@ -54,6 +54,242 @@ let porcComisionMotorizado = 0.70;
 let cargaInicialPedidos = true;
 let rolSeleccionadoLogin = "admin"; 
 
+// ==========================================
+// 🔗 FEATURE 1: LINK DE RASTREO PÚBLICO
+// ==========================================
+window.comprobarRastreoPublico = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const trackId = urlParams.get('track');
+
+    if (trackId) {
+        document.getElementById('login-view')?.classList.add('hidden');
+        document.getElementById('portal-aliado-container') && (document.getElementById('portal-aliado-container').style.display = 'none');
+        document.getElementById('app-container')?.classList.remove('active');
+
+        let containerRastreo = document.getElementById('public-tracking-view');
+        if (!containerRastreo) {
+            containerRastreo = document.createElement('div');
+            containerRastreo.id = 'public-tracking-view';
+            containerRastreo.style.cssText = 'max-width: 500px; margin: 20px auto; padding: 20px; font-family: sans-serif; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;';
+            document.body.appendChild(containerRastreo);
+        }
+        containerRastreo.style.display = 'block';
+        containerRastreo.innerHTML = `<div style="padding: 30px; color: #ff6600; font-size: 1.2rem;">⏳ Cargando estado del pedido...</div>`;
+
+        db.collection('pedidos').doc(trackId).onSnapshot(doc => {
+            if (!doc.exists) {
+                containerRastreo.innerHTML = `
+                    <div style="color: #ef4444; padding: 20px;">
+                        <h2>❌ Pedido No Encontrado</h2>
+                        <p>El enlace de rastreo es inválido o el pedido ha sido removido.</p>
+                    </div>`;
+                return;
+            }
+
+            const p = doc.data();
+            const barraHtml = obtenerBarraEstatus(p);
+
+            containerRastreo.innerHTML = `
+                <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h2 style="color: #ff6600; margin: 0; font-size: 1.4rem;">🚀 SunDelivery Valencia</h2>
+                    <p style="color: #64748b; margin: 5px 0 0 0; font-size: 0.9rem;">Rastreo de Despacho en Vivo</p>
+                </div>
+                <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: left; font-size: 0.9rem;">
+                    <div><b>📦 Guía:</b> #${p.id || doc.id.substring(0, 6)}</div>
+                    <div><b>🏪 Comercio:</b> ${p.aliado}</div>
+                    <div><b>👤 Cliente:</b> ${p.cliente}</div>
+                    <div><b>📍 Destino:</b> ${p.direccion}</div>
+                    ${p.incidencia ? `<div style="color: #ef4444; font-weight: bold; margin-top: 5px;">🚨 Novedad: ${p.incidencia}</div>` : ''}
+                </div>
+                <div style="margin: 20px 0;">
+                    ${barraHtml}
+                </div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">
+                    Esta pantalla se actualiza en tiempo real automáticamente.
+                </div>
+            `;
+        });
+        return true; 
+    }
+    return false;
+};
+
+window.copiarLinkRastreo = function(fId) {
+    const trackingUrl = `${window.location.origin}${window.location.pathname}?track=${fId}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(trackingUrl).then(() => {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: '🔗 Link de rastreo copiado',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        });
+    } else {
+        Swal.fire("Link de Rastreo", trackingUrl, "info");
+    }
+};
+
+// ==========================================
+// 🧾 FEATURE 2: IMPRESIÓN DE TICKET TÉRMICO
+// ==========================================
+window.imprimirTicketTermico = function(fId) {
+    const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
+    if (!p) {
+        Swal.fire("Error", "No se encontró la información del pedido.", "error");
+        return;
+    }
+
+    const tasa = parseFloat(document.getElementById('modal-tasa')?.value) || 45.50;
+    const totalBs = p.costo * tasa;
+
+    const ventanaImp = window.open('', '_blank', 'width=400,height=600');
+    ventanaImp.document.write(`
+        <html>
+        <head>
+            <title>Ticket #${p.id || 'SD'}</title>
+            <style>
+                @page { margin: 0; size: 58mm auto; }
+                body {
+                    font-family: 'Courier New', Courier, monospace;
+                    width: 100%;
+                    max-width: 280px;
+                    margin: 0 auto;
+                    padding: 8px;
+                    font-size: 11px;
+                    color: #000;
+                    background: #fff;
+                }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .bold { font-weight: bold; }
+                .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
+                .title { font-size: 14px; font-weight: bold; margin: 0; }
+                .sub-title { font-size: 10px; margin-bottom: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="text-center">
+                <p class="title">SUNDELIVERY VALENCIA</p>
+                <p class="sub-title">¡Logística Rápida y Segura!</p>
+                <p>Fecha: ${p.fecha} ${p.hora || ''}</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div>
+                <span class="bold">RETIRO (ALIADO):</span><br>
+                ${p.aliado}<br>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div>
+                <span class="bold">ENTREGA (CLIENTE):</span><br>
+                Nombre: ${p.cliente}<br>
+                Tlf: ${p.telefono}<br>
+                Dir: ${p.direccion}<br>
+                ${p.maps_link ? `GPS: ${p.maps_link}<br>` : ''}
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div>
+                <span class="bold">DETALLES DEL ENVÍO:</span><br>
+                Paquete: ${p.tamano_paquete || 'Estándar'}<br>
+                Pago: ${p.metodo_pago || 'Efectivo USD'}<br>
+                Notas: ${p.detalles || 'Sin observaciones'}
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div style="font-size: 13px;" class="bold">
+                Monto Delivery: $${(p.costo || 0).toFixed(2)}<br>
+                Equivalente Bs: Ref. ${FormatearBs(totalBs)}
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="text-center sub-title" style="margin-top: 10px;">
+                *** GRACIAS POR SU PREFERENCIA ***<br>
+                Rastreo: ${window.location.origin}/?track=${fId}
+            </div>
+            
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function(){ window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    ventanaImp.document.close();
+};
+
+// ==========================================
+// 🚨 FEATURE 3: MÓDULO DE INCIDENCIAS EN VIVO
+// ==========================================
+window.reportarNovedadIncidencia = function(fId) {
+    const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
+    if (!p) return;
+
+    Swal.fire({
+        title: '🚨 Reportar Novedad en Vivo',
+        html: `
+            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Selecciona la incidencia ocurrida con el pedido de <b>${p.cliente}</b>:</p>
+            <select id="swal-motivo-incidencia" class="swal2-input" style="font-size: 0.9rem;">
+                <option value="Demora en preparación / cocina">⏱️ Demora en preparación / cocina</option>
+                <option value="Cliente no responde las llamadas">📞 Cliente no responde las llamadas</option>
+                <option value="Dirección confusa / fuera de zona">📍 Dirección confusa / fuera de zona</option>
+                <option value="Repartidor no ha llegado">🛵 Repartidor no ha llegado</option>
+                <option value="Otro">❓ Otro motivo</option>
+            </select>
+            <input id="swal-detalle-incidencia" class="swal2-input" placeholder="Detalle adicional (opcional)" style="font-size: 0.9rem;">
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Enviar Alerta Central',
+        confirmButtonColor: '#ef4444',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const motivo = document.getElementById('swal-motivo-incidencia').value;
+            const detalle = document.getElementById('swal-detalle-incidencia').value.trim();
+            return { motivo, detalle };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const { motivo, detalle } = result.value;
+            const textoIncidencia = detalle ? `${motivo} (${detalle})` : motivo;
+            const horaIncidencia = getVenezuelaTime();
+
+            db.collection('pedidos').doc(fId).update({
+                incidencia: textoIncidencia,
+                fecha_incidencia: horaIncidencia,
+                status: 'INCIDENCIA'
+            }).then(() => {
+                const msgWhatsApp = encodeURIComponent(
+                    `*🚨 ALERTA DE INCIDENCIA EN VIVO*\n\n` +
+                    `*Pedido ID:* #${p.id || fId.substring(0,6)}\n` +
+                    `*Aliado:* ${p.aliado}\n` +
+                    `*Cliente:* ${p.cliente} (${p.telefono})\n` +
+                    `*Repartidor:* ${p.motorizado || 'Por asignar'}\n` +
+                    `*Hora Reporte:* ${horaIncidencia}\n\n` +
+                    `⚠️ *NOVEDAD:* ${textoIncidencia}\n\n` +
+                    `Por favor, Central de Despacho tomar acción inmediata.`
+                );
+
+                Swal.fire("Novedad Registrada", "Se ha actualizado la orden y notificado a la central.", "warning")
+                .then(() => {
+                    window.open(`https://api.whatsapp.com/send?phone=584244529892&text=${msgWhatsApp}`, '_blank');
+                });
+            });
+        }
+    });
+};
+
 window.setLoginRole = function(role) {
     rolSeleccionadoLogin = role;
     const btnAdmin = document.getElementById('toggle-admin');
@@ -153,7 +389,6 @@ window.calcularTarifaCotizador = function() {
     displayTarifa.innerText = tarifa > 0 ? `$${tarifa.toFixed(2)}` : '$0.00';
 };
 
-// FUNCION DE ESTADO EN TIEMPO REAL CON BARRA DE PROGRESO VISUAL
 function obtenerBarraEstatus(p) {
     let paso1 = "active", paso2 = "", paso3 = "", paso4 = "";
     let textoEstatus = "Solicitado";
@@ -214,24 +449,29 @@ function renderPedidosPortalAliado() {
         const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#0284c7; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa</a>` : '';
         const pagoHtml = p.metodo_pago ? `<br><span class="text-sub">💳 ${p.metodo_pago}</span>` : '';
         const pesoHtml = p.tamano_paquete ? `<br><span class="text-sub">📦 ${p.tamano_paquete}</span>` : '';
+        const badgeIncidencia = p.incidencia ? `<br><span style="color:#ef4444; font-size:0.75rem; font-weight:bold;">🚨 ${p.incidencia}</span>` : '';
 
         tbody.innerHTML += `
             <tr>
                 <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span>${p.hora_programada ? `<br><small style="color:#d97706;">⏰ ${p.hora_programada}</small>` : ''}</td>
                 <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span>${pagoHtml}</td>
-                <td>${p.direccion}${mapLinkHtml}</td>
+                <td>${p.direccion}${mapLinkHtml}${badgeIncidencia}</td>
                 <td style="min-width:130px;">${barraProgreso}</td>
                 <td class="text-italic">${p.motorizado || 'Por asignar'}${pesoHtml}</td>
                 <td class="text-orange" style="font-weight:bold;">${p.costo > 0 ? '$' + p.costo.toFixed(2) : 'Por calcular'}</td>
                 <td>
-                    <button type="button" class="action-btn" onclick="duplicarPedidoAliado('${p.firestoreId}')" title="Duplicar Orden">🔄</button>
+                    <div style="display:flex; gap:4px;">
+                        <button type="button" class="action-btn" onclick="copiarLinkRastreo('${p.firestoreId}')" title="Copiar Link de Rastreo">🔗</button>
+                        <button type="button" class="action-btn" onclick="imprimirTicketTermico('${p.firestoreId}')" title="Imprimir Ticket Térmico">🖨️</button>
+                        <button type="button" class="action-btn" onclick="reportarNovedadIncidencia('${p.firestoreId}')" title="Reportar Novedad">⚠️</button>
+                        <button type="button" class="action-btn" onclick="duplicarPedidoAliado('${p.firestoreId}')" title="Duplicar Orden">🔄</button>
+                    </div>
                 </td>
             </tr>
         `;
     });
 }
 
-// DUPLICAR PEDIDO PARA REORDENES RÁPIDAS
 window.duplicarPedidoAliado = function(fId) {
     const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
     if (!p) return;
@@ -256,7 +496,6 @@ window.duplicarPedidoAliado = function(fId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// EXPORTAR CONTROL CONTABLE A CSV / EXCEL
 window.exportarResumenAliadoExcel = function() {
     const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
     if (misAprobados.length === 0) {
@@ -281,7 +520,6 @@ window.exportarResumenAliadoExcel = function() {
     document.body.removeChild(link);
 };
 
-// CARGA Y REGISTRO DE COMPROBANTE DE PAGO
 window.registrarComprobantePagoAliado = function() {
     const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
     const totalAcumulado = misAprobados.reduce((sum, p) => sum + (p.costo || 0), 0);
@@ -750,7 +988,6 @@ window.cargarPedidoPendienteAlFormulario = function(fId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// PROCESAR DESPACHO DESDE EL PORTAL DE ALIADO (CON NUEVOS CAMPOS)
 window.processPortalPedido = function(e) {
     e.preventDefault();
     const clientName = document.getElementById('port-nombre').value.trim();
@@ -1088,9 +1325,14 @@ function renderPedidos() {
     }
 
     pedidosFiltrados.forEach(p => {
+        const badgeIncidencia = p.incidencia ? `<br><span style="color:#ef4444; font-weight:bold; font-size:0.75rem;">🚨 ${p.incidencia}</span>` : '';
+
         let btnAcciones = usuarioActual.rol === 'admin' ? `
             <td>
                 <div class="action-cell">
+                    <button type="button" class="action-btn" onclick="copiarLinkRastreo('${p.firestoreId}')" title="Copiar Link de Rastreo">🔗</button>
+                    <button type="button" class="action-btn" onclick="imprimirTicketTermico('${p.firestoreId}')" title="Imprimir Ticket Térmico">🖨️</button>
+                    <button type="button" class="action-btn" onclick="reportarNovedadIncidencia('${p.firestoreId}')" title="Reportar Novedad">⚠️</button>
                     <button type="button" class="action-btn" onclick="togglePedidoCompletado(event, '${p.firestoreId}')" title="${p.completado ? 'Marcar En Proceso' : 'Marcar Completado'}">${p.completado ? '✅' : '⏳'}</button>
                     <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
                     <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
@@ -1102,7 +1344,7 @@ function renderPedidos() {
             <tr onclick="openReceiptModal('${p.firestoreId}')">
                 <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
                 <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span></td>
-                <td>${p.direccion}</td>
+                <td>${p.direccion}${badgeIncidencia}</td>
                 <td>${p.aliado}</td>
                 <td class="text-italic">${p.motorizado || 'Por asignar'}</td>
                 <td class="text-orange">$${p.costo.toFixed(2)}</td>
@@ -1532,4 +1774,13 @@ window.triggerDownloadJPG = function() {
     });
 };
 
-syncCloudData();
+// INICIALIZACIÓN DE LA APLICACIÓN
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Verificar si se está accediendo mediante un Link de Rastreo Público
+    const esRastreoPublico = comprobarRastreoPublico();
+    
+    // 2. Si no es un cliente rastreando, sincronizar datos con Firestore
+    if (!esRastreoPublico) {
+        syncCloudData();
+    }
+});
