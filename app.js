@@ -1196,6 +1196,44 @@ function renderClientesDirectorio() {
     });
 }
 
+// ==========================================
+// 🔍 BUSCADOR EN TIEMPO REAL PARA CLIENTES
+// ==========================================
+window.filtrarClientesDirectorio = function() {
+    const textoFiltro = document.getElementById('input-buscar-cliente').value.toLowerCase().trim();
+    const tbody = document.getElementById('tabla-clientes-directorio-body');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    const clientesFiltrados = directorioClientes.filter(c => {
+        const nombre = (c.nombre || '').toLowerCase();
+        const telefono = (c.telefono || '').toLowerCase();
+        return nombre.includes(textoFiltro) || telefono.includes(textoFiltro);
+    });
+
+    if (clientesFiltrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;" class="text-italic">No se encontraron clientes coincidentes.</td></tr>`;
+        return;
+    }
+
+    clientesFiltrados.forEach(c => {
+        tbody.innerHTML += `
+            <tr>
+                <td class="text-bold">${c.nombre}</td>
+                <td>${c.telefono}</td>
+                <td>${c.direccion}</td>
+                <td>
+                    <div class="action-cell">
+                        <button type="button" class="action-btn" onclick="editClienteDir('${c.firestoreId}')">✏️</button>
+                        <button type="button" class="action-btn" onclick="deleteClienteDir('${c.firestoreId}')">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+};
+
 window.editClienteDir = function(fId) {
     const c = directorioClientes.find(item => item.firestoreId === fId);
     if (!c) return;

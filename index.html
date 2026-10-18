@@ -619,7 +619,7 @@
 
         /* FACTURA INTERNA / RECIBO DE MARCA */
         #recibo-diseno-factura {
-            display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 360px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
+            display: none; position: relative; background-color: #ffffff; color: #000000; padding: 25px; font-family: 'Courier New', Courier, monospace; width: 480px; margin: 0 auto; border: 1px solid #eee; overflow: hidden;
         }
         #seccion-vista-previa img { box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-radius: 12px; }
 
@@ -693,8 +693,8 @@
                 <button type="button" id="toggle-aliado" class="login-toggle-btn" onclick="setLoginRole('aliado')">ALIADO</button>
             </div>
 
-            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario">
-            <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña">
+            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario" autocomplete="username" name="username">
+            <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña" autocomplete="current-password" name="password">
             <button class="btn-login" onclick="validateLogin()">Entrar al Sistema</button>
         </div>
     </div>
@@ -1100,6 +1100,14 @@
                     <button type="submit" class="btn-submit" id="btn-submit-cliente-dir"><i class="fa-solid fa-user-plus"></i> Guardar en Cartera</button>
                 </form>
             </div>
+
+            <div class="card-panel" style="padding: 16px; margin-bottom: 15px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label><i class="fa-solid fa-magnifying-glass" style="color:#cd7f32"></i> Buscar Cliente por Nombre o Teléfono</label>
+                    <input type="text" id="input-buscar-cliente" placeholder="Escribe para filtrar clientes..." oninput="filtrarClientesDirectorio()">
+                </div>
+            </div>
+
             <div class="table-section-title"><i class="fa-solid fa-users-viewfinder" style="color:#ffffff"></i> Cartera Comercial Activa</div>
             <div class="table-responsive">
                 <table>
