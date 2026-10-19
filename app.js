@@ -353,12 +353,12 @@ window.setLoginRole = function(role) {
         if (inputUser) inputUser.placeholder = "Usuario de Aliado Asignado";
     } else if (role === 'motorizado') {
         if (btnMotorizado) btnMotorizado.classList.add('active');
-        if (inputUser) inputUser.placeholder = "Nombre o Teléfono de Motorizado";
+        if (inputUser) inputUser.placeholder = "Usuario Motorizado (Ej: soonner)";
     }
 };
 
 window.validateLogin = function() {
-    const userIn = document.getElementById('username-input').value.trim();
+    const userIn = document.getElementById('username-input').value.trim().toLowerCase();
     const pinIn = document.getElementById('pin-input').value.trim();
 
     if (!userIn || !pinIn) {
@@ -367,7 +367,7 @@ window.validateLogin = function() {
     }
 
     if (rolSeleccionadoLogin === 'admin') {
-        if (userIn.toLowerCase() === 'admin' && pinIn === '1987') { 
+        if (userIn === 'admin' && pinIn === '1987') { 
             usuarioActual = { username: "Admin", rol: "admin", aliadoComercial: "" };
             arrancarAplicacion();
         } else {
@@ -381,7 +381,7 @@ window.validateLogin = function() {
 
         const aliadoExiste = aliados.find(a => {
             const campoUsuario = a.usuario || a.usuarioLogin || a.username;
-            return campoUsuario && campoUsuario.toString().toLowerCase() === userIn.toLowerCase();
+            return campoUsuario && campoUsuario.toString().toLowerCase() === userIn;
         });
         
         if (aliadoExiste) {
@@ -404,9 +404,10 @@ window.validateLogin = function() {
         }
 
         const motoExiste = motorizados.find(m => {
+            const userMoto = m.usuario ? m.usuario.toString().toLowerCase() : "";
             const nombreMoto = m.nombre ? m.nombre.toString().toLowerCase() : "";
             const tlfMoto = m.telefono ? m.telefono.toString().toLowerCase() : "";
-            return nombreMoto.includes(userIn.toLowerCase()) || tlfMoto.includes(userIn.toLowerCase());
+            return userMoto === userIn || nombreMoto.includes(userIn) || tlfMoto.includes(userIn);
         });
 
         if (motoExiste) {
@@ -418,7 +419,7 @@ window.validateLogin = function() {
                 Swal.fire("Error de Acceso", "PIN de motorizado incorrecto.", "error");
             }
         } else {
-            Swal.fire("Error de Acceso", "No se encontró ningún repartidor con esos datos.", "error");
+            Swal.fire("Error de Acceso", "No se encontró ningún repartidor con ese usuario o datos.", "error");
         }
     }
 };
@@ -1451,13 +1452,19 @@ window.limpiarFiltrosBusqueda = function() {
 // ==========================================
 window.registerGasto = function(event) {
     event.preventDefault();
-    const det = document.getElementById('gasto-detalle').value;
+    const det = document.getElementById('gasto-detalle').value.trim();
     const mon = parseFloat(document.getElementById('gasto-monto').value) || 0;
     const cat = document.getElementById('gasto-categoria') ? document.getElementById('gasto-categoria').value : 'Varios';
     
-    db.collection('gastos').add({ detalle: det, monto: mon, categoria: cat, fecha: getVenezuelaDate() }).then(() => {
+    db.collection('gastos').add({ 
+        detalle: det, 
+        monto: mon, 
+        categoria: cat, 
+        fecha: getVenezuelaDate(),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
         document.getElementById('form-gastos').reset();
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado con categoría', showConfirmButton: false, timer: 1500 });
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado correctamente', showConfirmButton: false, timer: 1500 });
     });
 };
 
@@ -1753,16 +1760,17 @@ function renderMotorizados() {
     if (!tbody) return;
     tbody.innerHTML = '';
     if (motorizados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" class="text-italic">No hay motorizados registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No hay motorizados registrados.</td></tr>`;
         return;
     }
     motorizados.forEach(m => {
         tbody.innerHTML += `
             <tr>
                 <td class="text-bold">${m.nombre}</td>
+                <td style="color:#cd7f32; font-weight:600;">${m.usuario || 'No asignado'}</td>
                 <td>${m.telefono}</td>
+                <td><code>${m.pin || '1234'}</code></td>
                 <td><span class="badge-blue">${m.placa}</span></td>
-                <td>${m.direccion}</td>
                 <td>
                     <div class="action-cell">
                         <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')">✏️</button>
@@ -1776,13 +1784,15 @@ function renderMotorizados() {
 
 window.saveMotorizado = function(e) {
     e.preventDefault();
-    const nom = document.getElementById('moto-nombre').value;
-    const tlf = document.getElementById('moto-telefono').value;
-    const plc = document.getElementById('moto-placa').value;
-    const dir = document.getElementById('moto-direccion').value;
+    const nom = document.getElementById('moto-nombre').value.trim();
+    const usr = document.getElementById('moto-usuario') ? document.getElementById('moto-usuario').value.trim().toLowerCase() : '';
+    const pin = document.getElementById('moto-pin') ? document.getElementById('moto-pin').value.trim() : '1234';
+    const tlf = document.getElementById('moto-telefono').value.trim();
+    const plc = document.getElementById('moto-placa').value.trim();
+    const dir = document.getElementById('moto-direccion').value.trim();
 
     if (editMotoId !== null) {
-        db.collection('motorizados').doc(editMotoId).update({ nombre: nom, telefono: tlf, placa: plc, direccion: dir })
+        db.collection('motorizados').doc(editMotoId).update({ nombre: nom, usuario: usr, pin: pin, telefono: tlf, placa: plc, direccion: dir })
         .then(() => {
             editMotoId = null;
             document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores`;
@@ -1791,10 +1801,10 @@ window.saveMotorizado = function(e) {
             Swal.fire("Listo", "Motorizado actualizado.", "success");
         });
     } else {
-        db.collection('motorizados').add({ id: Date.now(), nombre: nom, telefono: tlf, placa: plc, direccion: dir })
+        db.collection('motorizados').add({ id: Date.now(), nombre: nom, usuario: usr, pin: pin, telefono: tlf, placa: plc, direccion: dir })
         .then(() => {
             document.getElementById('form-motorizado').reset();
-            Swal.fire("Registrado", "Nuevo repartidor en línea.", "success");
+            Swal.fire("Registrado", "Nuevo repartidor en línea con su usuario y PIN.", "success");
         });
     }
 };
@@ -1805,10 +1815,12 @@ window.editMotorizado = function(fId) {
     editMotoId = fId;
     document.getElementById('form-moto-title').innerHTML = `✏️ Editar Motorizado`;
     document.getElementById('btn-submit-moto').innerHTML = `Actualizar`;
-    document.getElementById('moto-nombre').value = m.nombre;
-    document.getElementById('moto-telefono').value = m.telefono;
-    document.getElementById('moto-placa').value = m.placa;
-    document.getElementById('moto-direccion').value = m.direccion;
+    document.getElementById('moto-nombre').value = m.nombre || "";
+    if (document.getElementById('moto-usuario')) document.getElementById('moto-usuario').value = m.usuario || "";
+    if (document.getElementById('moto-pin')) document.getElementById('moto-pin').value = m.pin || "";
+    document.getElementById('moto-telefono').value = m.telefono || "";
+    document.getElementById('moto-placa').value = m.placa || "";
+    document.getElementById('moto-direccion').value = m.direccion || "";
 };
 
 window.deleteMotorizado = function(fId) {
