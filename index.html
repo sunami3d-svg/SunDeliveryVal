@@ -37,6 +37,52 @@
             color: #f5f5f5;
             min-height: 100vh;
             padding-bottom: 60px;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* SOPORTE MODO CLARO (LIGHT THEME) */
+        body.light-theme {
+            background-color: #f1f5f9;
+            background-image: radial-gradient(circle at top right, #e2e8f0 0%, #f1f5f9 100%);
+            color: #1e293b;
+        }
+        body.light-theme .login-card, 
+        body.light-theme .card-panel, 
+        body.light-theme .main-header, 
+        body.light-theme .modal-body,
+        body.light-theme .table-responsive,
+        body.light-theme .info-box,
+        body.light-theme .cotizador-box,
+        body.light-theme .dash-card {
+            background-color: #ffffff;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        body.light-theme .login-input,
+        body.light-theme .form-group input, 
+        body.light-theme .form-group select, 
+        body.light-theme .form-group textarea,
+        body.light-theme .config-inputs input {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        body.light-theme th {
+            background-color: #e2e8f0;
+            color: #8b4513;
+        }
+        body.light-theme td {
+            color: #334155;
+            border-bottom-color: #e2e8f0;
+        }
+        body.light-theme .expense-list {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+        body.light-theme .expense-item {
+            border-bottom-color: #e2e8f0;
+            color: #334155;
         }
 
         /* NOTIFICACIONES Y ALERTAS FLOTANTES */
@@ -185,11 +231,15 @@
         .header-brand {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 16px 0 10px 0;
+            justify-content: space-between;
+            padding: 16px 5px 10px 5px;
             font-size: 1.3rem;
             font-weight: 800;
             letter-spacing: -0.3px;
+        }
+        .brand-title-wrap {
+            display: flex;
+            align-items: center;
         }
         .header-brand span { color: #cd7f32; }
         .brand-logo-header {
@@ -632,14 +682,15 @@
             margin-bottom: 20px;
             border: 1px solid #2a2a2a;
             width: 100%;
+            gap: 4px;
         }
         .login-toggle-btn {
             flex: 1;
-            padding: 10px;
+            padding: 8px 4px;
             border: none;
             background: transparent;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             cursor: pointer;
             border-radius: 8px;
             color: #a0a0a0;
@@ -688,9 +739,11 @@
                 <p><i class="fa-brands fa-facebook" style="color:#cd7f32"></i> <strong>Facebook:</strong> SunDeliveryval</p>
             </div>
 
+            <!-- BOTONES DE SELECCIÓN DE ROL EN LOGIN (INCLUYE MOTORIZADO) -->
             <div class="login-toggle-container">
-                <button type="button" id="toggle-admin" class="login-toggle-btn active" onclick="setLoginRole('admin')">ADMINISTRADOR</button>
+                <button type="button" id="toggle-admin" class="login-toggle-btn active" onclick="setLoginRole('admin')">ADMIN</button>
                 <button type="button" id="toggle-aliado" class="login-toggle-btn" onclick="setLoginRole('aliado')">ALIADO</button>
+                <button type="button" id="toggle-motorizado" class="login-toggle-btn" onclick="setLoginRole('motorizado')">MOTORIZADO</button>
             </div>
 
             <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario" autocomplete="username" name="username">
@@ -756,7 +809,7 @@
                 </div>
             </div>
 
-            <!-- FORMULARIO PORTAL ALIADO CON LAS 4 NUEVAS OPCIONES -->
+            <!-- FORMULARIO PORTAL ALIADO -->
             <form id="form-portal-aliado" onsubmit="processPortalPedido(event)" autocomplete="off">
                 <div class="form-row-2">
                     <div class="form-group">
@@ -774,14 +827,12 @@
                     <input type="text" id="port-direccion" placeholder="Urb, Calle, Edificio/Casa" required>
                 </div>
 
-                <!-- OPCIÓN 1: Link de Google Maps / GPS -->
                 <div class="form-group">
                     <label><i class="fa-solid fa-map-location-dot" style="color:#cd7f32"></i> Ubicación Google Maps / GPS (Opcional)</label>
-                    <input type="url" id="port-maps" placeholder="https://maps.google.com/?q=...">
+                    <input type="url" id="port-maps-link" placeholder="https://maps.google.com/?q=...">
                 </div>
 
                 <div class="form-row-2">
-                    <!-- OPCIÓN 2: Horario de Entrega / Programación -->
                     <div class="form-group">
                         <label><i class="fa-solid fa-clock" style="color:#cd7f32"></i> Horario de Entrega</label>
                         <select id="port-horario" onchange="toggleHoraEspecificaAliado()" required>
@@ -790,13 +841,11 @@
                         </select>
                     </div>
 
-                    <!-- Hora Específica (Se activa si elije Programado) -->
                     <div class="form-group" id="group-hora-especifica" style="display: none;">
                         <label><i class="fa-solid fa-business-time" style="color:#cd7f32"></i> Hora Programada</label>
-                        <input type="time" id="port-hora-especifica">
+                        <input type="time" id="port-hora-programada">
                     </div>
 
-                    <!-- OPCIÓN 3: Método de Pago del Delivery -->
                     <div class="form-group">
                         <label><i class="fa-solid fa-wallet" style="color:#cd7f32"></i> Método de Pago Delivery</label>
                         <select id="port-metodo-pago" required>
@@ -810,12 +859,11 @@
                 </div>
 
                 <div class="form-row-2">
-                    <!-- OPCIÓN 4: Tamaño / Peso del Paquete -->
                     <div class="form-group">
                         <label><i class="fa-solid fa-box-archive" style="color:#cd7f32"></i> Tamaño / Peso del Paquete</label>
-                        <select id="port-tamano" required>
+                        <select id="port-tamano-paquete" required>
                             <option value="Pequeño / Sobre">Pequeño (Documentos / Ligero)</option>
-                            <option value="Mediano">Mediano (Comida / Estándar)</option>
+                            <option value="Mediano / Bolsa">Mediano (Comida / Estándar)</option>
                             <option value="Grande / Carga">Grande / Carga Pesada</option>
                         </select>
                     </div>
@@ -838,10 +886,10 @@
                             <th>Fecha/Hora</th>
                             <th>Cliente</th>
                             <th>Dirección</th>
-                            <th>Horario / Pago</th>
                             <th>Estatus</th>
                             <th>Repartidor</th>
-                            <th>Costo Delivery</th>
+                            <th>Costo</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-portal-aliado-body"></tbody>
@@ -854,8 +902,12 @@
     <div id="app-container">
         <header class="main-header">
             <div class="header-brand">
-                <img src="35811.png" alt="SunDelivery Logo" class="brand-logo-header">
-                SUN<span>DELIVERY</span> Val <span id="badge-rol" style="font-size:0.75rem; margin-left:8px; padding:2px 8px; background:#cd7f32; color:#fff; border-radius:8px;">Admin</span>
+                <div class="brand-title-wrap">
+                    <img src="35811.png" alt="SunDelivery Logo" class="brand-logo-header">
+                    SUN<span>DELIVERY</span> Val <span id="badge-rol" style="font-size:0.75rem; margin-left:8px; padding:2px 8px; background:#cd7f32; color:#fff; border-radius:8px;">Admin</span>
+                </div>
+                <!-- BOTÓN PARA ALTERNAR MODO CLARO / OSCURO -->
+                <button onclick="toggleTheme()" class="action-btn" title="Cambiar Modo Claro/Oscuro" style="font-size: 1.1rem; padding: 6px 12px;">🌓</button>
             </div>
             <nav class="nav-tabs" id="menu-navegacion">
                 <div id="tab-agregar" class="tab-item active" onclick="switchTab('agregar')"><i class="fa-solid fa-circle-plus"></i>Pedido</div>
@@ -928,7 +980,7 @@
             </div>
 
             <!-- PEDIDOS PENDIENTES ENTRANTES DE ALIADOS -->
-            <div class="card-panel v-admin" id="panel-pendientes-aliados-box" style="border-left: 5px solid #cd7f32;">
+            <div class="card-panel v-admin" id="panel-pendientes-aliados-box" style="border-left: 5px solid #cd7f32; display:none;">
                 <div class="table-section-title" style="margin-bottom:12px;"><i class="fa-solid fa-bell" style="color:#cd7f32"></i> 📥 Pedidos Pendientes de Aliados</div>
                 <div class="table-responsive" style="margin-bottom:0;">
                     <table>
@@ -1076,12 +1128,23 @@
                 </div>
             </div>
 
+            <!-- GASTOS CON SELECTOR DE CATEGORÍA -->
             <div class="card-panel v-admin">
                 <div class="panel-title"><i class="fa-solid fa-receipt" style="color:#cd7f32"></i> Control de Gastos Administrativos</div>
                 <form id="form-gastos" onsubmit="registerGasto(event)">
                     <div class="form-row-2">
                         <div class="form-group" style="flex: 2;"><input type="text" id="gasto-detalle" placeholder="Detalle del Gasto" required></div>
                         <div class="form-group" style="flex: 1;"><input type="number" step="0.01" id="gasto-monto" placeholder="Monto ($)" required></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría del Gasto</label>
+                        <select id="gasto-categoria" required>
+                            <option value="Combustible">⛽ Combustible</option>
+                            <option value="Mantenimiento">🔧 Mantenimiento / Flota</option>
+                            <option value="Insumos">📦 Insumos</option>
+                            <option value="Publicidad">📢 Publicidad</option>
+                            <option value="Varios" selected>📋 Varios / Copias / Comida</option>
+                        </select>
                     </div>
                     <button type="submit" class="btn-submit btn-red"><i class="fa-solid fa-hand-holding-dollar"></i> Registrar Gasto</button>
                 </form>
@@ -1117,13 +1180,14 @@
             </div>
         </div>
 
-        <!-- PESTAÑA: MOTORIZADOS -->
+        <!-- PESTAÑA: MOTORIZADOS (CON CAMPO PIN PARA LOGIN) -->
         <div id="view-motorizados" class="view-section">
             <div class="card-panel">
                 <div class="panel-title" id="form-moto-title"><i class="fa-solid fa-helmet-safety" style="color:#cd7f32"></i> Panel de Repartidores</div>
                 <form id="form-motorizado" onsubmit="saveMotorizado(event)">
                     <div class="form-group"><label>Nombre</label><input type="text" id="moto-nombre" required></div>
                     <div class="form-group"><label>Teléfono</label><input type="text" id="moto-telefono" required></div>
+                    <div class="form-group"><label>PIN / Contraseña de Acceso</label><input type="text" id="moto-pin" placeholder="Ej. 1234" required></div>
                     <div class="form-group"><label>Placa / Moto</label><input type="text" id="moto-placa" required></div>
                     <div class="form-group"><label>Dirección</label><input type="text" id="moto-direccion" required></div>
                     <button type="submit" class="btn-submit" id="btn-submit-moto"><i class="fa-solid fa-circle-check"></i> Guardar Repartidor</button>
@@ -1131,7 +1195,7 @@
             </div>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>Nombre</th><th>Teléfono</th><th>Moto</th><th>Dirección</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>Nombre</th><th>Teléfono</th><th>PIN</th><th>Moto</th><th>Dirección</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-motorizados-body"></tbody>
                 </table>
             </div>
