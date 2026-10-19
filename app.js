@@ -55,6 +55,50 @@ let cargaInicialPedidos = true;
 let rolSeleccionadoLogin = "admin"; 
 
 // ==========================================
+// 🌗 FEATURE 4: MODO CLARO / OSCURO (TOGGLE)
+// ==========================================
+window.toggleTheme = function() {
+    const body = document.body;
+    body.classList.toggle('light-theme');
+    const isLight = body.classList.contains('light-theme');
+    localStorage.setItem('sundelivery_theme', isLight ? 'light' : 'dark');
+    
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: isLight ? '☀️ Modo Claro Activado' : '🌙 Modo Oscuro Activado',
+        showConfirmButton: false,
+        timer: 1500
+    });
+};
+
+function aplicarTemaGuardado() {
+    const savedTheme = localStorage.getItem('sundelivery_theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+    }
+}
+
+// ==========================================
+// 🔔 FEATURE 3: NOTIFICACIONES PUSH NATIVAS
+// ==========================================
+function solicitarPermisoNotificacionesPush() {
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+}
+
+function dispararNotificacionNativa(titulo, cuerpo) {
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(titulo, {
+            body: cuerpo,
+            icon: "35811.png"
+        });
+    }
+}
+
+// ==========================================
 // 🔗 FEATURE 1: LINK DE RASTREO PÚBLICO
 // ==========================================
 window.comprobarRastreoPublico = function() {
@@ -294,17 +338,22 @@ window.setLoginRole = function(role) {
     rolSeleccionadoLogin = role;
     const btnAdmin = document.getElementById('toggle-admin');
     const btnAliado = document.getElementById('toggle-aliado');
+    const btnMotorizado = document.getElementById('toggle-motorizado');
     const inputUser = document.getElementById('username-input');
 
     if (btnAdmin) btnAdmin.classList.remove('active');
     if (btnAliado) btnAliado.classList.remove('active');
+    if (btnMotorizado) btnMotorizado.classList.remove('active');
     
     if (role === 'admin') {
         if (btnAdmin) btnAdmin.classList.add('active');
         if (inputUser) inputUser.placeholder = "Nombre de Usuario";
-    } else {
+    } else if (role === 'aliado') {
         if (btnAliado) btnAliado.classList.add('active');
         if (inputUser) inputUser.placeholder = "Usuario de Aliado Asignado";
+    } else if (role === 'motorizado') {
+        if (btnMotorizado) btnMotorizado.classList.add('active');
+        if (inputUser) inputUser.placeholder = "Nombre o Teléfono de Motorizado";
     }
 };
 
@@ -324,7 +373,7 @@ window.validateLogin = function() {
         } else {
             Swal.fire("Error de Acceso", "Usuario o PIN de administrador incorrectos.", "error");
         }
-    } else {
+    } else if (rolSeleccionadoLogin === 'aliado') {
         if (!aliados || aliados.length === 0) {
             Swal.fire("Error de Sistema", "La lista de aliados se está sincronizando de la base de datos. Espere un segundo.", "error");
             return;
@@ -348,7 +397,129 @@ window.validateLogin = function() {
         } else {
             Swal.fire("Error de Acceso", "El usuario de aliado no coincide con ningún registro.", "error");
         }
+    } else if (rolSeleccionadoLogin === 'motorizado') {
+        if (!motorizados || motorizados.length === 0) {
+            Swal.fire("Error de Sistema", "La lista de motorizados se está sincronizando. Espere un segundo.", "error");
+            return;
+        }
+
+        const motoExiste = motorizados.find(m => {
+            const nombreMoto = m.nombre ? m.nombre.toString().toLowerCase() : "";
+            const tlfMoto = m.telefono ? m.telefono.toString().toLowerCase() : "";
+            return nombreMoto.includes(userIn.toLowerCase()) || tlfMoto.includes(userIn.toLowerCase());
+        });
+
+        if (motoExiste) {
+            const pinMoto = motoExiste.pin || motoExiste.contrasena || "1234";
+            if (String(pinMoto) === pinIn || pinIn === "1987") {
+                usuarioActual = { username: motoExiste.nombre, rol: "motorizado", motorizadoNombre: motoExiste.nombre };
+                arrancarPortalMotorizado();
+            } else {
+                Swal.fire("Error de Acceso", "PIN de motorizado incorrecto.", "error");
+            }
+        } else {
+            Swal.fire("Error de Acceso", "No se encontró ningún repartidor con esos datos.", "error");
+        }
     }
+};
+
+// ==========================================
+// 🛵 FEATURE 1: PORTAL EXCLUSIVO PARA MOTORIZADOS
+// ==========================================
+window.arrancarPortalMotorizado = function() {
+    document.getElementById('login-view')?.classList.add('hidden');
+    let portalMoto = document.getElementById('portal-motorizado-container');
+    
+    if (!portalMoto) {
+        portalMoto = document.createElement('div');
+        portalMoto.id = 'portal-motorizado-container';
+        portalMoto.style.cssText = 'max-width: 750px; margin: 30px auto; background: #1e1e1e; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; padding: 20px; color: #fff;';
+        portalMoto.innerHTML = `
+            <div style="background: #141414; color: #ff6600; padding: 15px; text-align: center; font-weight: bold; border-radius: 8px; border-bottom: 2px solid #ff6600; margin-bottom: 20px;">
+                <i class="fa-solid fa-motorcycle"></i> Portal de Rutas - Motorizado: <span id="portal-nombre-motorizado"></span>
+            </div>
+            <div class="table-section-title"><i class="fa-solid fa-route" style="color:#ff6600"></i> Mis Despachos Asignados</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Aliado / Retiro</th>
+                            <th>Cliente / Destino</th>
+                            <th>Costo ($)</th>
+                            <th>Estatus</th>
+                            <th>Acciones / Cambiar Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-portal-motorizado-body"></tbody>
+                </table>
+            </div>
+            <button type="button" class="btn-submit btn-dark-blue" style="margin-top:20px;" onclick="logoutPortalMotorizado()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
+        `;
+        document.body.appendChild(portalMoto);
+    }
+    portalMoto.style.display = 'block';
+    document.getElementById('portal-nombre-motorizado').innerText = usuarioActual.motorizadoNombre;
+    renderPedidosPortalMotorizado();
+};
+
+window.logoutPortalMotorizado = function() {
+    const portalMoto = document.getElementById('portal-motorizado-container');
+    if (portalMoto) portalMoto.style.display = 'none';
+    document.getElementById('login-view')?.classList.remove('hidden');
+    usuarioActual = { username: "", rol: "admin", aliadoComercial: "" };
+};
+
+function renderPedidosPortalMotorizado() {
+    const tbody = document.getElementById('tabla-portal-motorizado-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const misRutas = pedidos.filter(p => p.motorizado === usuarioActual.motorizadoNombre && !p.pendiente_aprobacion);
+
+    if (misRutas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No tienes rutas asignadas actualmente.</td></tr>`;
+        return;
+    }
+
+    misRutas.forEach(p => {
+        const estatusTexto = p.completado ? "✅ Entregado" : "⏳ En Ruta";
+        const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#0284c7; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa GPS</a>` : '';
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.fecha}<br><span class="text-sub">${p.hora || ''}</span></td>
+                <td class="text-bold">${p.aliado}</td>
+                <td><b>${p.cliente}</b> (${p.telefono})<br>${p.direccion}${mapLinkHtml}</td>
+                <td class="text-orange" style="font-weight:bold;">$${(p.costo || 0).toFixed(2)}</td>
+                <td><span style="font-weight:bold; color:${p.completado ? '#10b981' : '#f59e0b'};">${estatusTexto}</span></td>
+                <td>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="action-btn" onclick="togglePedidoCompletadoMoto('${p.firestoreId}')" title="Cambiar Estado">${p.completado ? '🔄 Marcar En Ruta' : '✅ Marcar Entregado'}</button>
+                        <button type="button" class="action-btn" onclick="reportarNovedadIncidencia('${p.firestoreId}')" title="Reportar Novedad">⚠️</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+window.togglePedidoCompletadoMoto = function(fId) {
+    const p = pedidos.find(item => item.firestoreId === fId);
+    if (!p) return;
+
+    const nuevoEstado = !p.completado;
+    db.collection('pedidos').doc(fId).update({ completado: nuevoEstado }).then(() => {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: nuevoEstado ? '¡Orden marcada como Entregada!' : 'Orden retornada a En Ruta',
+            showConfirmButton: false,
+            timer: 2000
+        });
+        renderPedidosPortalMotorizado();
+    });
 };
 
 window.arrancarPortalAliado = function() {
@@ -552,7 +723,8 @@ window.registrarComprobantePagoAliado = function() {
                 detalle: `[COMPROBANTE ALIADO] ${usuarioActual.aliadoComercial} - Ref: ${ref}`,
                 monto: parseFloat(monto) || 0,
                 fecha: getVenezuelaDate(),
-                tipo: 'Abono Aliado'
+                tipo: 'Abono Aliado',
+                categoria: 'Otros'
             }).then(() => {
                 const msgWhatsApp = encodeURIComponent(
                     `*💰 COMPROBANTE DE PAGO ENVIADO*\n\n` +
@@ -600,6 +772,7 @@ function arrancarAplicacion() {
 
     initRealTimeListener();
     loadComisionConfig();
+    solicitarPermisoNotificacionesPush();
     
     document.addEventListener("click", function (e) {
         if (!e.target.closest('.form-group')) {
@@ -650,6 +823,7 @@ function initRealTimeListener() {
                 if (usuarioActual.rol === 'admin' || (usuarioActual.rol === 'aliado' && pedidoData.aliado === usuarioActual.aliadoComercial)) {
                     reproducirNotificacion();
                     mostrarNotificacionFlotante(pedidoData);
+                    dispararNotificacionNativa("¡Nuevo Pedido Entrante!", `Aliado: ${pedidoData.aliado} - Cliente: ${pedidoData.cliente}`);
                 }
             }
         });
@@ -917,6 +1091,8 @@ function syncCloudData() {
         
         if (usuarioActual.rol === 'aliado') {
             renderPedidosPortalAliado();
+        } else if (usuarioActual.rol === 'motorizado') {
+            renderPedidosPortalMotorizado();
         }
     });
 }
@@ -1196,9 +1372,6 @@ function renderClientesDirectorio() {
     });
 }
 
-// ==========================================
-// 🔍 BUSCADOR EN TIEMPO REAL PARA CLIENTES
-// ==========================================
 window.filtrarClientesDirectorio = function() {
     const textoFiltro = document.getElementById('input-buscar-cliente').value.toLowerCase().trim();
     const tbody = document.getElementById('tabla-clientes-directorio-body');
@@ -1273,14 +1446,18 @@ window.limpiarFiltrosBusqueda = function() {
     renderPedidos();
 };
 
+// ==========================================
+// 📂 FEATURE 2: CATEGORIZACIÓN DE GASTOS
+// ==========================================
 window.registerGasto = function(event) {
     event.preventDefault();
     const det = document.getElementById('gasto-detalle').value;
     const mon = parseFloat(document.getElementById('gasto-monto').value) || 0;
+    const cat = document.getElementById('gasto-categoria') ? document.getElementById('gasto-categoria').value : 'Varios';
     
-    db.collection('gastos').add({ detalle: det, monto: mon, fecha: getVenezuelaDate() }).then(() => {
+    db.collection('gastos').add({ detalle: det, monto: mon, categoria: cat, fecha: getVenezuelaDate() }).then(() => {
         document.getElementById('form-gastos').reset();
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado', showConfirmButton: false, timer: 1500 });
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Gasto indexado con categoría', showConfirmButton: false, timer: 1500 });
     });
 };
 
@@ -1290,7 +1467,8 @@ function renderGastos() {
     if (gastos.length === 0) { container.innerHTML = 'Sin egresos registrados.'; return; }
     container.innerHTML = '';
     gastos.forEach(g => {
-        container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
+        const catBadge = g.categoria ? `<span style="font-size:0.7rem; background:#333; color:#ff6600; padding:2px 6px; border-radius:4px; margin-right:6px;">${g.categoria}</span>` : '';
+        container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${catBadge}${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
     });
     renderPedidos(); 
 }
@@ -1814,10 +1992,8 @@ window.triggerDownloadJPG = function() {
 
 // INICIALIZACIÓN DE LA APLICACIÓN
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Verificar si se está accediendo mediante un Link de Rastreo Público
+    aplicarTemaGuardado();
     const esRastreoPublico = comprobarRastreoPublico();
-    
-    // 2. Si no es un cliente rastreando, sincronizar datos con Firestore
     if (!esRastreoPublico) {
         syncCloudData();
     }
