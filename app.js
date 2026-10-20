@@ -54,6 +54,10 @@ let porcComisionMotorizado = 0.70;
 let cargaInicialPedidos = true;
 let rolSeleccionadoLogin = "admin"; 
 
+// Instancias globales para Chart.js (Dashboard Pro)
+let chartAliadosInstance = null;
+let chartFinanzasInstance = null;
+
 // ==========================================
 // 🌗 FEATURE 4: MODO CLARO / OSCURO (TOGGLE)
 // ==========================================
@@ -81,7 +85,7 @@ function aplicarTemaGuardado() {
 }
 
 // ==========================================
-// 🔔 FEATURE 3: NOTIFICACIONES PUSH NATIVAS
+// 🔔 FEATURE 2: NOTIFICACIONES PUSH NATIVAS
 // ==========================================
 function solicitarPermisoNotificacionesPush() {
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
@@ -99,7 +103,72 @@ function dispararNotificacionNativa(titulo, cuerpo) {
 }
 
 // ==========================================
-// 🔗 FEATURE 1: LINK DE RASTREO PÚBLICO
+// 📈 FEATURE 4: ANALÍTICA AVANZADA (DASHBOARD PRO / CHART.JS)
+// ==========================================
+function actualizarDashboardPro() {
+    if (usuarioActual.rol !== 'admin') return;
+
+    const canvasAliados = document.getElementById('chartAliados');
+    const canvasFinanzas = document.getElementById('chartFinanzas');
+    if (!canvasAliados || !canvasFinanzas) return;
+
+    // 1. Agrupar ingresos por Aliado
+    const ingresosPorAliado = {};
+    pedidos.forEach(p => {
+        if (p.pendiente_aprobacion) return;
+        const aliado = p.aliado || 'General';
+        ingresosPorAliado[aliado] = (ingresosPorAliado[aliado] || 0) + (p.costo || 0);
+    });
+
+    const labelsAliados = Object.keys(ingresosPorAliado);
+    const dataAliados = Object.values(ingresosPorAliado);
+
+    if (chartAliadosInstance) chartAliadosInstance.destroy();
+    chartAliadosInstance = new Chart(canvasAliados, {
+        type: 'doughnut',
+        data: {
+            labels: labelsAliados.length > 0 ? labelsAliados : ['Sin datos'],
+            datasets: [{
+                data: dataAliados.length > 0 ? dataAliados : [1],
+                backgroundColor: ['#cd7f32', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0', font: { size: 11 } } } }
+        }
+    });
+
+    // 2. Gráfico Ingresos vs Gastos
+    let totalIngresosMes = pedidos.reduce((acc, p) => p.pendiente_aprobacion ? acc : acc + (p.costo || 0), 0);
+    let totalGastosMes = gastos.reduce((acc, g) => acc + (g.monto || 0), 0);
+
+    if (chartFinanzasInstance) chartFinanzasInstance.destroy();
+    chartFinanzasInstance = new Chart(canvasFinanzas, {
+        type: 'bar',
+        data: {
+            labels: ['Ingresos Delivery', 'Gastos Operativos'],
+            datasets: [{
+                data: [totalIngresosMes, totalGastosMes],
+                backgroundColor: ['#10b981', '#ef4444'],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { ticks: { color: '#a0a0a0' }, grid: { color: '#2a2a2a' } },
+                x: { ticks: { color: '#a0a0a0' }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ==========================================
+// 🔗 FEATURE 1: LINK DE RASTREO PÚBLICO GPS
 // ==========================================
 window.comprobarRastreoPublico = function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -108,24 +177,25 @@ window.comprobarRastreoPublico = function() {
     if (trackId) {
         document.getElementById('login-view')?.classList.add('hidden');
         document.getElementById('portal-aliado-container') && (document.getElementById('portal-aliado-container').style.display = 'none');
+        document.getElementById('portal-motorizado-container') && (document.getElementById('portal-motorizado-container').style.display = 'none');
         document.getElementById('app-container')?.classList.remove('active');
 
         let containerRastreo = document.getElementById('public-tracking-view');
         if (!containerRastreo) {
             containerRastreo = document.createElement('div');
             containerRastreo.id = 'public-tracking-view';
-            containerRastreo.style.cssText = 'max-width: 500px; margin: 20px auto; padding: 20px; font-family: sans-serif; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center;';
+            containerRastreo.style.cssText = 'max-width: 500px; margin: 40px auto; padding: 25px; font-family: sans-serif; background: #1e1e1e; color: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #cd7f32; text-align: center;';
             document.body.appendChild(containerRastreo);
         }
         containerRastreo.style.display = 'block';
-        containerRastreo.innerHTML = `<div style="padding: 30px; color: #ff6600; font-size: 1.2rem;">⏳ Cargando estado del pedido...</div>`;
+        containerRastreo.innerHTML = `<div style="padding: 30px; color: #cd7f32; font-size: 1.2rem;">⏳ Cargando ubicación y estado del pedido...</div>`;
 
         db.collection('pedidos').doc(trackId).onSnapshot(doc => {
             if (!doc.exists) {
                 containerRastreo.innerHTML = `
                     <div style="color: #ef4444; padding: 20px;">
                         <h2>❌ Pedido No Encontrado</h2>
-                        <p>El enlace de rastreo es inválido o el pedido ha sido removido.</p>
+                        <p>El enlace de rastreo es inválido o el despacho ha sido finalizado.</p>
                     </div>`;
                 return;
             }
@@ -134,22 +204,23 @@ window.comprobarRastreoPublico = function() {
             const barraHtml = obtenerBarraEstatus(p);
 
             containerRastreo.innerHTML = `
-                <div style="text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px;">
-                    <h2 style="color: #ff6600; margin: 0; font-size: 1.4rem;">🚀 SunDelivery Valencia</h2>
-                    <p style="color: #64748b; margin: 5px 0 0 0; font-size: 0.9rem;">Rastreo de Despacho en Vivo</p>
+                <div style="text-align: center; border-bottom: 2px solid #2a2a2a; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h2 style="color: #cd7f32; margin: 0; font-size: 1.4rem;">🚀 SunDelivery Valencia</h2>
+                    <p style="color: #a0a0a0; margin: 5px 0 0 0; font-size: 0.9rem;">Rastreo de Despacho en Vivo (GPS)</p>
                 </div>
-                <div style="background: #fafafa; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: left; font-size: 0.9rem;">
+                <div style="background: #141414; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: left; font-size: 0.9rem; border: 1px solid #2a2a2a;">
                     <div><b>📦 Guía:</b> #${p.id || doc.id.substring(0, 6)}</div>
                     <div><b>🏪 Comercio:</b> ${p.aliado}</div>
                     <div><b>👤 Cliente:</b> ${p.cliente}</div>
                     <div><b>📍 Destino:</b> ${p.direccion}</div>
-                    ${p.incidencia ? `<div style="color: #ef4444; font-weight: bold; margin-top: 5px;">🚨 Novedad: ${p.incidencia}</div>` : ''}
+                    <div><b>🛵 Repartidor:</b> ${p.motorizado || 'Asignando unidad...'}</div>
+                    ${p.incidencia ? `<div style="color: #ef4444; font-weight: bold; margin-top: 8px;">🚨 Novedad: ${p.incidencia}</div>` : ''}
                 </div>
                 <div style="margin: 20px 0;">
                     ${barraHtml}
                 </div>
-                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 20px;">
-                    Esta pantalla se actualiza en tiempo real automáticamente.
+                <div style="font-size: 0.8rem; color: #808080; margin-top: 20px;">
+                    Esta pantalla se actualiza en tiempo real automáticamente con la central.
                 </div>
             `;
         });
@@ -178,7 +249,7 @@ window.copiarLinkRastreo = function(fId) {
 };
 
 // ==========================================
-// 🧾 FEATURE 2: IMPRESIÓN DE TICKET TÉRMICO
+// 🧾 IMPRESIÓN DE TICKET TÉRMICO
 // ==========================================
 window.imprimirTicketTermico = function(fId) {
     const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
@@ -275,7 +346,7 @@ window.imprimirTicketTermico = function(fId) {
 };
 
 // ==========================================
-// 🚨 FEATURE 3: MÓDULO DE INCIDENCIAS EN VIVO
+// 🚨 MÓDULO DE INCIDENCIAS EN VIVO
 // ==========================================
 window.reportarNovedadIncidencia = function(fId) {
     const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
@@ -284,15 +355,15 @@ window.reportarNovedadIncidencia = function(fId) {
     Swal.fire({
         title: '🚨 Reportar Novedad en Vivo',
         html: `
-            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Selecciona la incidencia ocurrida con el pedido de <b>${p.cliente}</b>:</p>
-            <select id="swal-motivo-incidencia" class="swal2-input" style="font-size: 0.9rem;">
+            <p style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 10px;">Selecciona la incidencia ocurrida con el pedido de <b>${p.cliente}</b>:</p>
+            <select id="swal-motivo-incidencia" class="swal2-input" style="font-size: 0.9rem; background:#121212; color:#fff; border-color:#333;">
                 <option value="Demora en preparación / cocina">⏱️ Demora en preparación / cocina</option>
-                <option value="Cliente no responde las llamadas">📞 Cliente no responde las llamadas</option>
+                <option value="Cliente no responde llamadas">📞 Cliente no responde llamadas</option>
                 <option value="Dirección confusa / fuera de zona">📍 Dirección confusa / fuera de zona</option>
-                <option value="Repartidor no ha llegado">🛵 Repartidor no ha llegado</option>
+                <option value="Repartidor en camino">🛵 Repartidor en camino</option>
                 <option value="Otro">❓ Otro motivo</option>
             </select>
-            <input id="swal-detalle-incidencia" class="swal2-input" placeholder="Detalle adicional (opcional)" style="font-size: 0.9rem;">
+            <input id="swal-detalle-incidencia" class="swal2-input" placeholder="Detalle adicional (opcional)" style="font-size: 0.9rem; background:#121212; color:#fff; border-color:#333;">
         `,
         showCancelButton: true,
         confirmButtonText: 'Enviar Alerta Central',
@@ -425,41 +496,15 @@ window.validateLogin = function() {
 };
 
 // ==========================================
-// 🛵 FEATURE 1: PORTAL EXCLUSIVO PARA MOTORIZADOS
+// 🛵 FEATURE 3: PORTAL EXCLUSIVO MOTORIZADO + BILLETERA DIGITAL
 // ==========================================
 window.arrancarPortalMotorizado = function() {
     document.getElementById('login-view')?.classList.add('hidden');
     let portalMoto = document.getElementById('portal-motorizado-container');
     
-    if (!portalMoto) {
-        portalMoto = document.createElement('div');
-        portalMoto.id = 'portal-motorizado-container';
-        portalMoto.style.cssText = 'max-width: 750px; margin: 30px auto; background: #1e1e1e; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #2d2d2d; padding: 20px; color: #fff;';
-        portalMoto.innerHTML = `
-            <div style="background: #141414; color: #ff6600; padding: 15px; text-align: center; font-weight: bold; border-radius: 8px; border-bottom: 2px solid #ff6600; margin-bottom: 20px;">
-                <i class="fa-solid fa-motorcycle"></i> Portal de Rutas - Motorizado: <span id="portal-nombre-motorizado"></span>
-            </div>
-            <div class="table-section-title"><i class="fa-solid fa-route" style="color:#ff6600"></i> Mis Despachos Asignados</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Fecha/Hora</th>
-                            <th>Aliado / Retiro</th>
-                            <th>Cliente / Destino</th>
-                            <th>Costo ($)</th>
-                            <th>Estatus</th>
-                            <th>Acciones / Cambiar Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-portal-motorizado-body"></tbody>
-                </table>
-            </div>
-            <button type="button" class="btn-submit btn-dark-blue" style="margin-top:20px;" onclick="logoutPortalMotorizado()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>
-        `;
-        document.body.appendChild(portalMoto);
+    if (portalMoto) {
+        portalMoto.style.display = 'block';
     }
-    portalMoto.style.display = 'block';
     document.getElementById('portal-nombre-motorizado').innerText = usuarioActual.motorizadoNombre;
     renderPedidosPortalMotorizado();
 };
@@ -478,6 +523,20 @@ function renderPedidosPortalMotorizado() {
 
     const misRutas = pedidos.filter(p => p.motorizado === usuarioActual.motorizadoNombre && !p.pendiente_aprobacion);
 
+    // Calcular Billetera Digital / Control de Efectivo en Mano
+    let totalCobradoRuta = 0;
+    misRutas.forEach(p => {
+        if (p.completado) {
+            totalCobradoRuta += (p.costo || 0);
+        }
+    });
+    let comisionNetaMoto = totalCobradoRuta * porcComisionMotorizado;
+    let entregarCentral = totalCobradoRuta - comisionNetaMoto;
+
+    document.getElementById('moto-caja-cobrado').innerText = `$${totalCobradoRuta.toFixed(2)}`;
+    document.getElementById('moto-caja-comision').innerText = `$${comisionNetaMoto.toFixed(2)}`;
+    document.getElementById('moto-caja-entregar').innerText = `$${entregarCentral.toFixed(2)}`;
+
     if (misRutas.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;" class="text-italic">No tienes rutas asignadas actualmente.</td></tr>`;
         return;
@@ -485,7 +544,7 @@ function renderPedidosPortalMotorizado() {
 
     misRutas.forEach(p => {
         const estatusTexto = p.completado ? "✅ Entregado" : "⏳ En Ruta";
-        const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#0284c7; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa GPS</a>` : '';
+        const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#cd7f32; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa GPS</a>` : '';
 
         tbody.innerHTML += `
             <tr>
@@ -496,7 +555,7 @@ function renderPedidosPortalMotorizado() {
                 <td><span style="font-weight:bold; color:${p.completado ? '#10b981' : '#f59e0b'};">${estatusTexto}</span></td>
                 <td>
                     <div style="display:flex; gap:6px;">
-                        <button type="button" class="action-btn" onclick="togglePedidoCompletadoMoto('${p.firestoreId}')" title="Cambiar Estado">${p.completado ? '🔄 Marcar En Ruta' : '✅ Marcar Entregado'}</button>
+                        <button type="button" class="action-btn" onclick="togglePedidoCompletadoMoto('${p.firestoreId}')" title="Cambiar Estado">${p.completado ? '🔄 En Ruta' : '✅ Entregado'}</button>
                         <button type="button" class="action-btn" onclick="reportarNovedadIncidencia('${p.firestoreId}')" title="Reportar Novedad">⚠️</button>
                     </div>
                 </td>
@@ -543,23 +602,10 @@ window.logoutPortal = function() {
 };
 
 function initCotizadorAliado() {
-    const selectZona = document.getElementById('port-cotizador-zona');
+    const selectZona = document.getElementById('cotizador-zona');
     if (!selectZona) return;
-    
-    selectZona.innerHTML = '<option value="">-- Seleccionar Zona de Destino --</option>';
-    for (const [zona, tarifa] of Object.entries(TARIFARIO_ZONAS)) {
-        selectZona.innerHTML += `<option value="${tarifa}">${zona} ($${tarifa.toFixed(2)})</option>`;
-    }
+    calcularCotizacionRapida();
 }
-
-window.calcularTarifaCotizador = function() {
-    const selectZona = document.getElementById('port-cotizador-zona');
-    const displayTarifa = document.getElementById('port-cotizador-monto');
-    if (!selectZona || !displayTarifa) return;
-
-    const tarifa = parseFloat(selectZona.value) || 0;
-    displayTarifa.innerText = tarifa > 0 ? `$${tarifa.toFixed(2)}` : '$0.00';
-};
 
 function obtenerBarraEstatus(p) {
     let paso1 = "active", paso2 = "", paso3 = "", paso4 = "";
@@ -578,12 +624,12 @@ function obtenerBarraEstatus(p) {
 
     return `
         <div class="status-tracker-container" style="font-size:0.75rem;">
-            <div style="font-weight:bold; margin-bottom:4px; color:#ff6600;">📌 ${textoEstatus}</div>
+            <div style="font-weight:bold; margin-bottom:4px; color:#cd7f32;">📌 ${textoEstatus}</div>
             <div style="display:flex; gap:4px; align-items:center;">
-                <span style="height:6px; flex:1; border-radius:3px; background:${paso1 ? '#ff6600' : '#cbd5e1'};"></span>
-                <span style="height:6px; flex:1; border-radius:3px; background:${paso2 ? '#ff6600' : '#cbd5e1'};"></span>
-                <span style="height:6px; flex:1; border-radius:3px; background:${paso3 ? '#0284c7' : '#cbd5e1'};"></span>
-                <span style="height:6px; flex:1; border-radius:3px; background:${paso4 ? '#10b981' : '#cbd5e1'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso1 ? '#cd7f32' : '#333'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso2 ? '#cd7f32' : '#333'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso3 ? '#3b82f6' : '#333'};"></span>
+                <span style="height:6px; flex:1; border-radius:3px; background:${paso4 ? '#10b981' : '#333'};"></span>
             </div>
         </div>
     `;
@@ -599,18 +645,6 @@ function renderPedidosPortalAliado() {
     
     const todosMisPedidos = [...misPendientes, ...misAprobados].sort((a, b) => b.id - a.id);
 
-    let cantPendientes = misPendientes.length;
-    let cantAprobados = misAprobados.length;
-    let totalInversionUSD = misAprobados.reduce((sum, p) => sum + (p.costo || 0), 0);
-
-    const elDashPend = document.getElementById('aliado-dash-pendientes');
-    const elDashAct = document.getElementById('aliado-dash-activos');
-    const elDashInversion = document.getElementById('aliado-dash-inversion');
-
-    if (elDashPend) elDashPend.innerText = cantPendientes;
-    if (elDashAct) elDashAct.innerText = cantAprobados;
-    if (elDashInversion) elDashInversion.innerText = `$${totalInversionUSD.toFixed(2)}`;
-
     if (todosMisPedidos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" class="text-italic">No posees pedidos registrados en la plataforma.</td></tr>`;
         return;
@@ -618,7 +652,7 @@ function renderPedidosPortalAliado() {
 
     todosMisPedidos.forEach(p => {
         const barraProgreso = obtenerBarraEstatus(p);
-        const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#0284c7; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa</a>` : '';
+        const mapLinkHtml = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="color:#cd7f32; font-size:0.75rem;"><i class="fa-solid fa-location-dot"></i> Ver Mapa</a>` : '';
         const pagoHtml = p.metodo_pago ? `<br><span class="text-sub">💳 ${p.metodo_pago}</span>` : '';
         const pesoHtml = p.tamano_paquete ? `<br><span class="text-sub">📦 ${p.tamano_paquete}</span>` : '';
         const badgeIncidencia = p.incidencia ? `<br><span style="color:#ef4444; font-size:0.75rem; font-weight:bold;">🚨 ${p.incidencia}</span>` : '';
@@ -636,114 +670,12 @@ function renderPedidosPortalAliado() {
                         <button type="button" class="action-btn" onclick="copiarLinkRastreo('${p.firestoreId}')" title="Copiar Link de Rastreo">🔗</button>
                         <button type="button" class="action-btn" onclick="imprimirTicketTermico('${p.firestoreId}')" title="Imprimir Ticket Térmico">🖨️</button>
                         <button type="button" class="action-btn" onclick="reportarNovedadIncidencia('${p.firestoreId}')" title="Reportar Novedad">⚠️</button>
-                        <button type="button" class="action-btn" onclick="duplicarPedidoAliado('${p.firestoreId}')" title="Duplicar Orden">🔄</button>
                     </div>
                 </td>
             </tr>
         `;
     });
 }
-
-window.duplicarPedidoAliado = function(fId) {
-    const p = [...pedidos, ...pedidosPendientesAliados].find(item => item.firestoreId === fId);
-    if (!p) return;
-
-    if (document.getElementById('port-nombre')) document.getElementById('port-nombre').value = p.cliente || '';
-    if (document.getElementById('port-telefono')) document.getElementById('port-telefono').value = p.telefono || '';
-    if (document.getElementById('port-direccion')) document.getElementById('port-direccion').value = p.direccion || '';
-    if (document.getElementById('port-detalles')) document.getElementById('port-detalles').value = p.detalles || '';
-    if (document.getElementById('port-maps-link')) document.getElementById('port-maps-link').value = p.maps_link || '';
-    if (document.getElementById('port-metodo-pago')) document.getElementById('port-metodo-pago').value = p.metodo_pago || 'Efectivo USD';
-    if (document.getElementById('port-tamano-paquete')) document.getElementById('port-tamano-paquete').value = p.tamano_paquete || 'Mediano / Bolsa';
-
-    Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: 'Datos duplicados en el formulario de envío.',
-        showConfirmButton: false,
-        timer: 2000
-    });
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-window.exportarResumenAliadoExcel = function() {
-    const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
-    if (misAprobados.length === 0) {
-        Swal.fire("Sin Registros", "No tienes entregas registradas para exportar.", "info");
-        return;
-    }
-
-    let csvContent = "data:text/csv;charset=utf-8,Fecha,Hora,Cliente,Telefono,Direccion,Metodo Pago,Motorizado,Monto USD,Estatus\n";
-
-    misAprobados.forEach(p => {
-        const estatus = p.completado ? "Entregado" : "En Ruta";
-        const row = `"${p.fecha}","${p.hora || ''}","${p.cliente}","${p.telefono}","${p.direccion.replace(/"/g, '""')}","${p.metodo_pago || 'N/A'}","${p.motorizado || 'N/A'}","${(p.costo || 0).toFixed(2)}","${estatus}"`;
-        csvContent += row + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Reporte_Entregas_${usuarioActual.aliadoComercial.replace(/\s+/g, '_')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
-window.registrarComprobantePagoAliado = function() {
-    const misAprobados = pedidos.filter(p => p.aliado === usuarioActual.aliadoComercial);
-    const totalAcumulado = misAprobados.reduce((sum, p) => sum + (p.costo || 0), 0);
-
-    Swal.fire({
-        title: 'Reportar Pago de Deliverys',
-        html: `
-            <p style="font-size:0.9rem; color:#475569; margin-bottom:10px;">Total Acumulado Actual: <b>$${totalAcumulado.toFixed(2)}</b></p>
-            <input id="swal-ref-pago" class="swal2-input" placeholder="Número de Referencia / N° Transacción">
-            <input id="swal-monto-pago" type="number" step="0.01" class="swal2-input" placeholder="Monto Transferido ($ USD)">
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Enviar Comprobante',
-        confirmButtonColor: '#ff6600',
-        cancelButtonText: 'Cancelar',
-        preConfirm: () => {
-            const ref = document.getElementById('swal-ref-pago').value.trim();
-            const monto = document.getElementById('swal-monto-pago').value.trim();
-            if (!ref || !monto) {
-                Swal.showValidationMessage('Ingresa la referencia y el monto.');
-                return false;
-            }
-            return { ref, monto };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const { ref, monto } = result.value;
-            
-            db.collection('gastos').add({
-                detalle: `[COMPROBANTE ALIADO] ${usuarioActual.aliadoComercial} - Ref: ${ref}`,
-                monto: parseFloat(monto) || 0,
-                fecha: getVenezuelaDate(),
-                tipo: 'Abono Aliado',
-                categoria: 'Otros'
-            }).then(() => {
-                const msgWhatsApp = encodeURIComponent(
-                    `*💰 COMPROBANTE DE PAGO ENVIADO*\n\n` +
-                    `*Aliado Comercial:* ${usuarioActual.aliadoComercial}\n` +
-                    `*Monto Reportado:* $${parseFloat(monto).toFixed(2)}\n` +
-                    `*N° de Referencia:* ${ref}\n` +
-                    `*Fecha:* ${getVenezuelaDate()}\n\n` +
-                    `Por favor, verificar y conciliar en la relación de cuentas central.`
-                );
-                
-                Swal.fire("Pago Registrado", "El comprobante fue indexado. Procede a notificar a SunDelivery.", "success")
-                .then(() => {
-                    window.open(`https://api.whatsapp.com/send?phone=584244529892&text=${msgWhatsApp}`, '_blank');
-                });
-            });
-        }
-    });
-};
 
 function arrancarAplicacion() {
     document.getElementById('login-view').classList.add('hidden');
@@ -790,6 +722,10 @@ window.switchTab = function(tabId) {
     document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
     document.getElementById(`tab-${tabId}`).classList.add('active');
     document.getElementById(`view-${tabId}`).classList.add('active');
+
+    if (tabId === 'gestion') {
+        setTimeout(() => { actualizarDashboardPro(); }, 150);
+    }
 };
 
 function loadComisionConfig() {
@@ -843,7 +779,7 @@ function mostrarNotificacionFlotante(pedido) {
     const alertBox = document.createElement('div');
     alertBox.className = 'alerta-notificacion-rt';
     alertBox.innerHTML = `
-        <div style="font-weight:800; color:#ff6600; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> ¡NUEVO PEDIDO ENTRANTE!</div>
+        <div style="font-weight:800; color:#cd7f32; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> ¡NUEVO PEDIDO ENTRANTE!</div>
         <div style="font-size:0.85rem; line-height:1.4;">
             <b>Aliado:</b> ${pedido.aliado}<br>
             <b>Cliente:</b> ${pedido.cliente}<br>
@@ -902,7 +838,7 @@ function generateAliadoInvoice() {
     if (nombreAliado === "TODOS_LOS_ALIADOS") {
         document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Aliado Comercial:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #1e293b;">CONSOLIDADO GLOBAL</span>`;
     } else {
-        document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Aliado Comercial:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #ff6600;">${nombreAliado}</span>`;
+        document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Aliado Comercial:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #cd7f32;">${nombreAliado}</span>`;
     }
 
     const fDesdeFormateada = fechaDesde.split('-').reverse().join('/');
@@ -916,7 +852,7 @@ function generateAliadoInvoice() {
     let acumuladoUSD = 0;
     pedidosFiltrados.forEach(p => {
         acumuladoUSD += p.costo;
-        const tagAliado = nombreAliado === "TODOS_LOS_ALIADOS" ? `<b style="color:#ff6600;">[${p.aliado}]</b> ` : '';
+        const tagAliado = nombreAliado === "TODOS_LOS_ALIADOS" ? `<b style="color:#cd7f32;">[${p.aliado}]</b> ` : '';
         
         tbodyFactura.innerHTML += `
             <tr style="border-bottom: 1px dashed #cbd5e1; font-size: 0.95rem; color: #1e293b;">
@@ -972,7 +908,7 @@ function generateMotorizadoPayrollInvoice() {
     }
 
     document.getElementById('fact-titulo-documento').innerText = "RECIBO DE PAGO DE MOTORIZADO";
-    document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Motorizado:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #ff6600;">${nomMoto}</span><br><b>Comisión Asignada:</b> <span>${Math.round(porcComisionMotorizado * 100)}%</span>`;
+    document.getElementById('fact-bloque-entidad').innerHTML = `<b style="font-size: 1.1rem;">Motorizado:</b> <span style="font-size: 1.1rem; font-weight: bold; color: #cd7f32;">${nomMoto}</span><br><b>Comisión Asignada:</b> <span>${Math.round(porcComisionMotorizado * 100)}%</span>`;
     
     const fDesdeFormateada = fDesde.split('-').reverse().join('/');
     const fHastaFormateada = fHasta.split('-').reverse().join('/');
@@ -1089,6 +1025,7 @@ function syncCloudData() {
         pedidos.sort((a, b) => b.id - a.id);
         renderPedidos();
         renderPedidosPendientesAliadosTable(); 
+        actualizarDashboardPro();
         
         if (usuarioActual.rol === 'aliado') {
             renderPedidosPortalAliado();
@@ -1113,16 +1050,16 @@ function renderPedidosPendientesAliadosTable() {
     panelBox.style.display = "block";
     pedidosPendientesAliados.forEach(p => {
         const extraInfo = p.metodo_pago ? `<br><small>💳 ${p.metodo_pago}</small>` : '';
-        const mapInfo = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="font-size:0.75rem; color:#0284c7;">📍 Mapa GPS</a>` : '';
+        const mapInfo = p.maps_link ? `<br><a href="${p.maps_link}" target="_blank" style="font-size:0.75rem; color:#cd7f32;">📍 Mapa GPS</a>` : '';
 
         tbody.innerHTML += `
             <tr>
-                <td class="text-bold" style="color: #ff6600;">${p.aliado}</td>
+                <td class="text-bold" style="color: #cd7f32;">${p.aliado}</td>
                 <td class="text-bold">${p.cliente}<span class="text-sub">${p.telefono}</span>${extraInfo}</td>
                 <td>${p.direccion}${mapInfo}</td>
                 <td>${p.detalles} ${p.tamano_paquete ? `<br><small>📦 ${p.tamano_paquete}</small>` : ''}</td>
                 <td>
-                    <button type="button" class="btn-submit" style="padding:6px 10px; font-size:0.78rem; width:auto; background:#ff6600;" onclick="cargarPedidoPendienteAlFormulario('${p.firestoreId}')">
+                    <button type="button" class="btn-submit" style="padding:6px 10px; font-size:0.78rem; width:auto; background:#cd7f32;" onclick="cargarPedidoPendienteAlFormulario('${p.firestoreId}')">
                         <i class="fa-solid fa-bolt"></i> Procesar Orden
                     </button>
                 </td>
@@ -1151,7 +1088,7 @@ window.cargarPedidoPendienteAlFormulario = function(fId) {
     
     editPedidoId = "PENDIENTE_" + fId; 
     
-    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Procesando Pedido de Aliado [${p.aliado}]`;
+    document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#cd7f32"></i> Procesando Pedido de Aliado [${p.aliado}]`;
     
     Swal.fire({
         toast: true,
@@ -1172,15 +1109,12 @@ window.processPortalPedido = function(e) {
     const clientDir = document.getElementById('port-direccion').value.trim();
     const detailText = document.getElementById('port-detalles').value.trim();
     
-    const horaProgramadaVal = document.getElementById('port-hora-programada') ? document.getElementById('port-hora-programada').value : 'Inmediato';
+    const horaProgramadaVal = document.getElementById('port-horario') && document.getElementById('port-horario').value === 'Programado' ? document.getElementById('port-hora-programada').value : 'Inmediato';
     const metodoPagoVal = document.getElementById('port-metodo-pago') ? document.getElementById('port-metodo-pago').value : 'Efectivo USD';
     const mapsLinkVal = document.getElementById('port-maps-link') ? document.getElementById('port-maps-link').value.trim() : '';
     const tamanoPaqueteVal = document.getElementById('port-tamano-paquete') ? document.getElementById('port-tamano-paquete').value : 'Mediano / Bolsa';
 
-    const inputFechaPort = document.getElementById('port-fecha');
-    const selectedFechaPort = inputFechaPort && inputFechaPort.value ? inputFechaPort.value : getVenezuelaDate();
-    const fechaFormatSalida = formatISOToVE(selectedFechaPort);
-
+    const fechaFormatSalida = formatISOToVE(getVenezuelaDate());
     const numericId = Date.now();
 
     const pedidoPreRegistro = {
@@ -1206,7 +1140,6 @@ window.processPortalPedido = function(e) {
     db.collection('pedidos').add(pedidoPreRegistro).then(() => {
         Swal.close();
         document.getElementById('form-portal-aliado').reset();
-        if (inputFechaPort) inputFechaPort.value = getVenezuelaDate();
         
         const msgCentralAdmin = encodeURIComponent(
             `*📌 NOTIFICACIÓN DE PORTAL DE ALIADOS*\n\n` +
@@ -1334,7 +1267,7 @@ window.saveDirectorioCliente = function(e) {
         db.collection('clientes').doc(editClienteDirId).update({ nombre: nom, telefono: tlf, direccion: dir })
         .then(() => {
             editClienteDirId = null;
-            document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#ff6600"></i> Ficha de Registro de Clientes`;
+            document.getElementById('form-cliente-title').innerHTML = `<i class="fa-solid fa-address-book" style="color:#cd7f32"></i> Ficha de Registro de Clientes`;
             document.getElementById('btn-submit-cliente-dir').innerHTML = `<i class="fa-solid fa-user-plus"></i> Guardar en Cartera`;
             document.getElementById('form-directorio-cliente').reset();
             Swal.fire("Actualizado", "Datos del cliente modificados en la nube.", "success");
@@ -1425,8 +1358,8 @@ window.deleteClienteDir = function(fId) {
         text: "El cliente ya no aparecerá en las sugerencias automáticas.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#ff6600',
-        cancelButtonColor: '#64748b',
+        confirmButtonColor: '#cd7f32',
+        cancelButtonColor: '#333',
         confirmButtonText: 'Sí, borrar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
@@ -1448,7 +1381,7 @@ window.limpiarFiltrosBusqueda = function() {
 };
 
 // ==========================================
-// 📂 FEATURE 2: CATEGORIZACIÓN DE GASTOS
+// 📂 GASTOS CON SELECTOR DE CATEGORÍA
 // ==========================================
 window.registerGasto = function(event) {
     event.preventDefault();
@@ -1474,8 +1407,8 @@ function renderGastos() {
     if (gastos.length === 0) { container.innerHTML = 'Sin egresos registrados.'; return; }
     container.innerHTML = '';
     gastos.forEach(g => {
-        const catBadge = g.categoria ? `<span style="font-size:0.7rem; background:#333; color:#ff6600; padding:2px 6px; border-radius:4px; margin-right:6px;">${g.categoria}</span>` : '';
-        container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;">❌ ${catBadge}${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
+        const catBadge = g.categoria ? `<span style="font-size:0.7rem; background:#333; color:#cd7f32; padding:2px 6px; border-radius:4px; margin-right:6px;">${g.categoria}</span>` : '';
+        container.innerHTML += `<div class="expense-item"><span onclick="deleteGasto('${g.firestoreId}')" style="cursor:pointer;" title="Eliminar gasto">❌ ${catBadge}${g.detalle}</span><b>$${g.monto.toFixed(2)}</b></div>`;
     });
     renderPedidos(); 
 }
@@ -1557,8 +1490,8 @@ function renderPedidos() {
                     <button type="button" class="action-btn" onclick="imprimirTicketTermico('${p.firestoreId}')" title="Imprimir Ticket Térmico">🖨️</button>
                     <button type="button" class="action-btn" onclick="reportarNovedadIncidencia('${p.firestoreId}')" title="Reportar Novedad">⚠️</button>
                     <button type="button" class="action-btn" onclick="togglePedidoCompletado(event, '${p.firestoreId}')" title="${p.completado ? 'Marcar En Proceso' : 'Marcar Completado'}">${p.completado ? '✅' : '⏳'}</button>
-                    <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')">✏️</button>
-                    <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')">🗑️</button>
+                    <button type="button" class="action-btn" onclick="editPedido(event, '${p.firestoreId}')" title="Editar">✏️</button>
+                    <button type="button" class="action-btn" onclick="deletePedido(event, '${p.firestoreId}')" title="Eliminar">🗑️</button>
                 </div>
             </td>
         ` : `<td class="v-admin"></td>`;
@@ -1629,7 +1562,7 @@ window.processNewPedido = function(e) {
             aliado: chosenAliado, motorizado: chosenMoto, costo: costValue, detalles: detailText
         }).then(() => {
             editPedidoId = null;
-            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#cd7f32"></i> Agregar Nuevo Pedido`;
             document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
             document.getElementById('form-pedido').reset();
             if (inputFechaPed) inputFechaPed.value = getVenezuelaDate();
@@ -1701,7 +1634,7 @@ window.processNewPedido = function(e) {
             document.getElementById('form-pedido').reset();
             if (inputFechaPed) inputFechaPed.value = getVenezuelaDate();
             
-            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#ff6600"></i> Agregar Nuevo Pedido`;
+            document.getElementById('form-pedido-title').innerHTML = `<i class="fa-solid fa-truck-ramp-box" style="color:#cd7f32"></i> Agregar Nuevo Pedido`;
             document.getElementById('btn-submit-pedido').innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar Pedido`;
             document.getElementById('whatsapp-modal').classList.add('active');
         });
@@ -1739,7 +1672,7 @@ window.deletePedido = function(event, fId) {
         text: "Esta acción borrará el registro permanente en la nube.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#ff6600',
+        confirmButtonColor: '#cd7f32',
         confirmButtonText: 'Sí, borrar de la nube'
     }).then((res) => {
         if (res.isConfirmed) {
@@ -1773,8 +1706,8 @@ function renderMotorizados() {
                 <td><span class="badge-blue">${m.placa}</span></td>
                 <td>
                     <div class="action-cell">
-                        <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')">✏️</button>
-                        <button type="button" class="action-btn" onclick="deleteMotorizado('${m.firestoreId}')">🗑️</button>
+                        <button type="button" class="action-btn" onclick="editMotorizado('${m.firestoreId}')" title="Editar">✏️</button>
+                        <button type="button" class="action-btn" onclick="deleteMotorizado('${m.firestoreId}')" title="Eliminar">🗑️</button>
                     </div>
                 </td>
             </tr>
@@ -1795,7 +1728,7 @@ window.saveMotorizado = function(e) {
         db.collection('motorizados').doc(editMotoId).update({ nombre: nom, usuario: usr, pin: pin, telefono: tlf, placa: plc, direccion: dir })
         .then(() => {
             editMotoId = null;
-            document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#ff6600"></i> Panel de Repartidores`;
+            document.getElementById('form-moto-title').innerHTML = `<i class="fa-solid fa-helmet-safety" style="color:#cd7f32"></i> Panel de Repartidores`;
             document.getElementById('btn-submit-moto').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Repartidor`;
             document.getElementById('form-motorizado').reset();
             Swal.fire("Listo", "Motorizado actualizado.", "success");
@@ -1841,13 +1774,13 @@ function renderAliados() {
         tbody.innerHTML += `
             <tr>
                 <td class="text-bold">${a.nombre}</td>
-                <td style="color:#64748b; font-weight:600;">${a.usuario || 'No asignado'}</td>
+                <td style="color:#cd7f32; font-weight:600;">${a.usuario || 'No asignado'}</td>
                 <td>${a.telefono}</td>
                 <td>${a.direccion}</td>
                 <td>
                     <div class="action-cell">
-                        <button type="button" class="action-btn" onclick="editAliado('${a.firestoreId}')">✏️</button>
-                        <button type="button" class="action-btn" onclick="deleteAliado('${a.firestoreId}')">🗑️</button>
+                        <button type="button" class="action-btn" onclick="editAliado('${a.firestoreId}')" title="Editar">✏️</button>
+                        <button type="button" class="action-btn" onclick="deleteAliado('${a.firestoreId}')" title="Eliminar">🗑️</button>
                     </div>
                 </td>
             </tr>
@@ -1867,7 +1800,7 @@ window.saveAliado = function(e) {
         db.collection('aliados').doc(editAliadoId).update({ nombre: nom, usuario: usrVal, pin: pinVal, telefono: tlf, direccion: dir })
         .then(() => {
             editAliadoId = null;
-            document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#ff6600"></i> Registro Comercial Aliado`;
+            document.getElementById('form-aliado-title').innerHTML = `<i class="fa-solid fa-shop" style="color:#cd7f32"></i> Registro Comercial Aliado`;
             document.getElementById('btn-submit-aliado').innerHTML = `<i class="fa-solid fa-circle-check"></i> Guardar Comercio`;
             document.getElementById('form-aliado').reset();
             Swal.fire("Completado", "Aliado comercial modificado.", "success");
@@ -1945,10 +1878,6 @@ function updateSelectDropdowns() {
 
 function FormatearBs(monto) {
     return monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function AntiXSS(str) {
-    return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 window.openReceiptModal = function(fId) {
