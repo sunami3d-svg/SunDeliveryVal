@@ -753,10 +753,10 @@
             </div>
             
             <div class="info-box">
-                <p><i class="fa-solid fa-location-dot" style="color:#cd7f32"></i> <strong>Dirección:</strong> Urb. Parral, CC Piazza, Postal 2001[span_0](start_span)[span_0](end_span)</p>
-                <p><i class="fa-solid fa-phone" style="color:#cd7f32"></i> <strong>Teléfono:</strong> 04244529892[span_1](start_span)[span_1](end_span)</p>
-                <p><i class="fa-brands fa-instagram" style="color:#cd7f32"></i> <strong>Instagram:</strong> @SunDeliveryVal[span_2](start_span)[span_2](end_span)</p>
-                <p><i class="fa-brands fa-facebook" style="color:#cd7f32"></i> <strong>Facebook:</strong> SunDeliveryval[span_3](start_span)[span_3](end_span)</p>
+                <p><i class="fa-solid fa-location-dot" style="color:#cd7f32"></i> <strong>Dirección:</strong> Urb. Parral, CC Piazza, Postal 2001</p>
+                <p><i class="fa-solid fa-phone" style="color:#cd7f32"></i> <strong>Teléfono:</strong> 04244529892</p>
+                <p><i class="fa-brands fa-instagram" style="color:#cd7f32"></i> <strong>Instagram:</strong> @SunDeliveryVal</p>
+                <p><i class="fa-brands fa-facebook" style="color:#cd7f32"></i> <strong>Facebook:</strong> SunDeliveryval</p>
             </div>
 
             <!-- BOTONES DE SELECCIÓN DE ROL EN LOGIN -->
@@ -766,8 +766,9 @@
                 <button type="button" id="toggle-motorizado" class="login-toggle-btn" onclick="setLoginRole('motorizado')">MOTORIZADO</button>
             </div>
 
-            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario" autocomplete="username" name="username">
-            <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña" autocomplete="current-password" name="password">
+            <!-- Campos optimizados sin retrasos de autocompletado en móviles -->
+            <input type="text" id="username-input" class="login-input" placeholder="Nombre de Usuario" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="username">
+            <input type="password" id="pin-input" class="login-input" placeholder="PIN / Contraseña" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="password">
             <button class="btn-login" onclick="validateLogin()">Entrar al Sistema</button>
         </div>
     </div>
